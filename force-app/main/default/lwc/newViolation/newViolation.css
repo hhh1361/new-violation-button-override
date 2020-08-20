@@ -1,0 +1,20 @@
+.yellow {
+    background-color: yellow;
+}
+.orange {
+    background-color: orange;
+}
+.red {
+    background-color: red;
+}
+.black {
+    background-color: black;
+}
+
+.palette {
+    border-radius: 10px;
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+    box-sizing: border-box;
+}

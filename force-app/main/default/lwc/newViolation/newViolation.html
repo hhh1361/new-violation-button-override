@@ -1,3 +1,53 @@
 <template>
-    
-</template>
+    <lightning-card title="NewViolation" icon-name="standard:record">
+        <div class="slds-m-around_medium">
+            <lightning-input label="Name" onchange={handleNameChange} class="slds-m-bottom_x-small"></lightning-input>
+
+           
+
+            <lightning-combobox name={fieldLabel} 
+                label={fieldLabel} 
+                value={value} 
+                placeholder={fieldLabel}
+                options={options} 
+                onchange={handleChange}>
+            </lightning-combobox>
+            
+
+
+
+            <div class="slds-form-element">
+                <label class="slds-form-element__label" for="combobox-id-1">
+                    <abbr class="slds-required" title="required">* </abbr>
+                    Mark
+                </label>
+                <div class="slds-form-element__control">
+                    <div class="slds-combobox_container">
+                        <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click" onclick={togglePicklist} aria-expanded="false" aria-haspopup="listbox" role="combobox">
+                            <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
+                                <input value={markValue} type="text" class="slds-input slds-combobox__input" id="combobox-id-1" aria-controls="listbox-id-1" autocomplete="off" role="textbox" placeholder="Select an Option" readonly />
+                            </div>
+                            <div id="listbox-id-1" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                                <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                    <template for:each={options} for:item="option">
+                                        <li role="presentation"  class="slds-listbox__item" key={option.label}>
+                                            <div id={option.label} title={option.value} class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="option">
+                                                <div title={option.value} class={option.class}></div>
+                                                <span title={option.value} class="slds-media__figure slds-listbox__option-icon"></span>
+                                                <span title={option.value} class="slds-media__body">
+                                                    <span title={option.value} class="slds-truncate">{option.value}</span>
+                                                </span>
+                                            </div>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div> 
+
+            <lightning-button label="Create violation" variant="brand" onclick={createViolation}></lightning-button>
+       </div>
+    </lightning-card>
+</template> 
