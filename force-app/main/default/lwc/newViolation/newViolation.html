@@ -109,7 +109,69 @@
                 class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
                 <span class="record-footer">Created by {createdByNameValue}, {creationDateValue}</span>
             </div>
+            <lightning-button class="slds-m-horizontal_medium" label="Log" variant="brand-outline" onclick={handlePopup}>
+
+            </lightning-button>
+            <div class="chart slds-m-around_medium" lwc:dom="manual"></div>
+            <section
+              id="modal"
+              role="dialog"
+              tabindex="-1"
+              aria-labelledby="modal-heading-01"
+              aria-modal="true"
+              aria-describedby="modal-content-id-1"
+              class="slds-modal slds-fade-in-open slds-hide"
+            >
+              <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                  <button
+                    class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                    title="Close"
+                  >
+                    <svg
+                      class="slds-button__icon slds-button__icon_large"
+                      aria-hidden="true"
+                    >
+                      <use
+                        xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"
+                      ></use>
+                    </svg>
+                    <span class="slds-assistive-text">Close</span>
+                  </button>
+                  <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+                    Log
+                  </h2>
+                </header>
+                <div
+                  class="slds-modal__content slds-p-around_medium"
+                  id="modal-content-id-1"
+                >
+                  <div class="slds-p-bottom_large slds-p-left_large">
+                        <lightning-datatable
+                                key-field="id"
+                                data={logData}
+                                columns={logColumns}
+                                hide-checkbox-column>
+                        </lightning-datatable>
+                  </div>
+                </div>
+                <footer class="slds-modal__footer slds-modal__footer_directional">
+                  <button class="slds-button slds-button_neutral" onclick={handleSkip}>
+                    Close
+                  </button>
+                </footer>
+              </div>
+            </section>
+            <div
+              class="slds-backdrop slds-backdrop_open slds-hide modalBackdrops"
+              id="modalBackdrops"
+            ></div>
+ 
         </template>
+
+
+
+        
 
     </lightning-card>
 </template>

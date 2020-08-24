@@ -1,0 +1,5 @@
+<aura:component 
+    implements="lightning:actionOverride,force:hasRecordId,force:hasSObjectName">
+    <aura:attribute name="recordId" type="String" />
+    <c:newViolation recordId="{v.recordId}"></c:newViolation>
+</aura:component>	

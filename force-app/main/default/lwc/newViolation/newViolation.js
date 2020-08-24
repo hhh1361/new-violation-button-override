@@ -4,6 +4,7 @@ import { getPicklistValues , getObjectInfo } from 'lightning/uiObjectInfoApi'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import selectById from '@salesforce/apex/UsersSelector.selectById';
 import sendEmailAlert from '@salesforce/apex/newViolationController.sendEmailAlert';
+import getLogs from '@salesforce/apex/newViolationController.getLogs';
 import VIOLATION_OBJECT from '@salesforce/schema/Violation__c';
 import ID_FIELD from '@salesforce/schema/Violation__c.Id';
 import NAME_FIELD from '@salesforce/schema/Violation__c.Name';
@@ -24,7 +25,6 @@ const FIELDS = [
     CREATEDBYID_FIELD.objectApiName + '.' + CREATEDBYID_FIELD.fieldApiName,
     CREATIONDATE_FIELD.objectApiName + '.' + CREATIONDATE_FIELD.fieldApiName,
 ];
-
 
 export default class NewViolation extends LightningElement {
     @api recordId;
@@ -58,7 +58,24 @@ export default class NewViolation extends LightningElement {
     @api actionType = this.recordId ? 'Create violation' : 'Save'
     @api isChanged;
 
+    @api logData
+    logColumns = [
+        { label: 'Time', fieldName: 'time', type: 'date', typeAttributes:{
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit"
+        }},
+        { label: 'Perfomed by', fieldName: 'perfomedBy' },
+        { label: 'Action', fieldName: 'action' },
+        { label: 'Details', fieldName: 'details' },
+    ]
 
+
+    connectedCallback() {
+        console.log(this.recordId)
+    }
     get isChanged() {
         return !this.recordId ||
         this.statusCurrent !== this.statusPrevious ||
@@ -260,6 +277,55 @@ export default class NewViolation extends LightningElement {
     sendAlert() {
         console.log('send email');
         console.log(this.recordId)
-        sendEmailAlert(this.recordId)
+        sendEmailAlert({recordId: this.recordId})
+        .then(data => {
+            this.logData = data.map( e => {
+                return {
+                    time: e.CreatedDate,
+                    perfomedBy: e.CreatedBy.Name,
+                    action: e.Field.slice(0, -3),
+                    details: `${e.OldValue} => ${e.NewValue}`
+                }
+            })
+        })
+        .catch(error => {
+            console.log('Error while send mail:');
+            console.log(error)
+        });
+    }
+
+    handlePopup() {
+        this.isLoading = true;
+        getLogs({recordId: this.recordId})
+        .then(data => {
+            this.logData = data.map(e => {
+                const action = /[A-Za-z]+/.exec(e.Field)[0];
+                const result = {
+                    time: e.CreatedDate,
+                    perfomedBy: e.CreatedBy.Name,
+                    action: action.charAt(0).toUpperCase() + action.slice(1),
+                }
+                if(e.OldValue) {
+                    result.details = `${e.OldValue} => ${e.NewValue}`
+                }
+                return result
+            })
+        })
+        .catch(error => {
+            console.log('Error while fetching log data:');
+            console.log(error)
+        });
+        this.template.querySelector("section").classList.remove("slds-hide");
+        this.template
+        .querySelector("div.modalBackdrops")
+        .classList.remove("slds-hide");
+        this.isLoading = false;
+    }
+  
+    handleSkip() {
+      this.template.querySelector("section").classList.add("slds-hide");
+      this.template
+        .querySelector("div.modalBackdrops")
+        .classList.add("slds-hide");
     }
 }
