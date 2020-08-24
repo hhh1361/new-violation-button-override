@@ -1,9 +1,11 @@
 import { LightningElement, wire, track, api } from 'lwc';
-import { createRecord, getRecord  } from 'lightning/uiRecordApi';
+import { createRecord, getRecord, updateRecord  } from 'lightning/uiRecordApi';
 import { getPicklistValues , getObjectInfo } from 'lightning/uiObjectInfoApi'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import selectById from '@salesforce/apex/UsersSelector.selectById';
+import sendEmailAlert from '@salesforce/apex/newViolationController.sendEmailAlert';
 import VIOLATION_OBJECT from '@salesforce/schema/Violation__c';
+import ID_FIELD from '@salesforce/schema/Violation__c.Id';
 import NAME_FIELD from '@salesforce/schema/Violation__c.Name';
 import MARK_FIELD from '@salesforce/schema/Violation__c.Mark__c';
 import STATUS_FIELD from '@salesforce/schema/Violation__c.Status__c';
@@ -25,39 +27,60 @@ const FIELDS = [
 
 
 export default class NewViolation extends LightningElement {
-    @api recordTypeId;
     @api recordId;
+    @api recordTypeId;
     
     @api markFieldLabel = 'Mark';
-    @api markValue = 'Mark';
+    @api markCurrent;
+    @api markPrevious;
     @track markOptions;
     @api inputBackground = "slds-input slds-combobox__input"
 
     @api statusFieldLabel = 'Status';
     @track statusOptions;
-    @api statusValue;
+    @api statusCurrent;
+    @api statusPrevious;
 
     @api descriptionFieldLabel = 'Description';
-    @api descriptionValue;
+    @api descriptionCurrent;
+    @api descriptionPrevious;
 
 
     @api proofFieldLabel = 'Proof';
-    @api proofValue;
+    @api proofCurrent;
+    @api proofPrevious;
 
     @api nameValue
     @api createdByIdValue
     @api creationDateValue
     @api createdByNameValue
 
+    @api actionType = this.recordId ? 'Create violation' : 'Save'
+    @api isChanged;
+
+
+    get isChanged() {
+        return !this.recordId ||
+        this.statusCurrent !== this.statusPrevious ||
+        this.markCurrent !== this.markPrevious ||
+        this.descriptionCurrent !== this.descriptionPrevious ||
+        this.proofCurrent !== this.proofPrevious
+    }
+    @api isLoading = false;
+
     @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
     wiredAccount({ data, error }) {
         if (data) {
             console.log(data)
             this.recordTypeId = data.recordTypeId;
-            this.markValue = data.fields.Mark__c.value; 
-            this.statusValue = data.fields.Status__c.value;
-            this.descriptionValue = data.fields.Description__c.value;
-            this.proofValue = data.fields.Proof__c.value;
+            this.markCurrent = data.fields.Mark__c.value; 
+            this.markPrevious = data.fields.Mark__c.value; 
+            this.statusCurrent = data.fields.Status__c.value;
+            this.statusPrevious = data.fields.Status__c.value;
+            this.descriptionCurrent = data.fields.Description__c.value;
+            this.descriptionPrevious = data.fields.Description__c.value;
+            this.proofCurrent = data.fields.Proof__c.value;
+            this.proofPrevious = data.fields.Proof__c.value;
             this.nameValue = data.fields.Name.value;
             this.createdByIdValue = data.fields.CreatedById.value;
             this.creationDateValue = data.fields.Creation_Date__c.displayValue;
@@ -119,7 +142,13 @@ export default class NewViolation extends LightningElement {
 
     handleUploadFinished(event) {
         const uploadedFiles = event.detail.files;
-        alert("No. of files uploaded : " + uploadedFiles.length);
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: `No. of files uploaded : ${uploadedFiles.length}. Refresh the page to access them.`,
+                variant: 'success',
+            }),
+        );
     }
 
 
@@ -127,46 +156,110 @@ export default class NewViolation extends LightningElement {
 
 
     changeStatus(event) {
-        this.statusValue = event.detail.value;
+        this.statusCurrent = event.detail.value;
     }
 
+    get inputBackground() {
+        return this.markCurrent ? 
+            `slds-input slds-combobox__input ${/\w+/.exec(this.markCurrent.toLowerCase())[0]}` :
+            'slds-input slds-combobox__input'
+    }
 
-
-    togglePicklist(e) {
+    changeMark(e) {
         if(!e.target.classList.contains('slds-combobox__input')) {
-            this.markValue = e.target.getAttribute('title')
-            this.inputBackground = `slds-input slds-combobox__input ${/\w+/.exec(this.markValue.toLowerCase())[0]}`
+            this.markCurrent = e.target.getAttribute('title');
         }
-        e.currentTarget.classList.toggle('slds-is-open')
+        e.currentTarget.classList.toggle('slds-is-open');
     }
 
-
-
-
-    createViolation() {
-        const fields = {};
-        fields[NAME_FIELD.fieldApiName] = this.name;
-        const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
-        createRecord(recordInput)
-            .then(violation => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Violation created',
-                        variant: 'success',
-                    }),
-                );
-            })
-            .catch(error => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error creating record',
-                        message: error.body.message,
-                        variant: 'error',
-                    }),
-                );
-            });
+    changeDescription(e) {
+        this.descriptionCurrent = e.detail.value;
     }
 
+    changeProof(e) {
+        this.proofCurrent = e.detail.value;
+    }
 
+    upsertViolation() {
+        this.isLoading = true;
+        if(this.recordId) {
+            //update existing record
+            const fields = {
+                [ID_FIELD.fieldApiName]: this.recordId,
+                [MARK_FIELD.fieldApiName]: this.markCurrent,
+                [STATUS_FIELD.fieldApiName]: this.statusCurrent,
+                [PROOF_FIELD.fieldApiName]: this.proofCurrent,
+                [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+            };
+            const recordInput = { fields };
+            updateRecord(recordInput)
+                .then(violation => {
+                    this.isLoading = false;
+                    this.statusPrevious = this.statusCurrent;
+                    this.markPrevious = this.markCurrent;
+                    this.descriptionPrevious = this.descriptionCurrent;
+                    this.proofPrevious = this.proofCurrent;
+                    
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Success',
+                            message: 'Violation updated',
+                            variant: 'success',
+                        }),
+                    );
+                })
+                .catch(error => {
+                    this.isLoading = false;
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Error updating record',
+                            message: error.body.message,
+                            variant: 'error',
+                        }),
+                    );
+                });
+        } else {
+            //insert new record
+            const fields = {
+                [MARK_FIELD.fieldApiName]: this.markCurrent,
+                [STATUS_FIELD.fieldApiName]: this.statusCurrent,
+                [PROOF_FIELD.fieldApiName]: this.proofCurrent,
+                [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+            };
+            const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
+            createRecord(recordInput)
+                .then(violation => {
+                    this.isLoading = false;
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Success',
+                            message: 'Violation created',
+                            variant: 'success',
+                        }),
+                    );
+                })
+                .catch(error => {
+                    this.isLoading = false;
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Error creating record',
+                            message: error.body.message,
+                            variant: 'error',
+                        }),
+                    );
+                });
+        }
+
+    }
+    cancel() {
+        this.statusCurrent = this.statusPrevious;
+        this.markCurrent = this.markPrevious;
+        this.descriptionCurrent = this.descriptionPrevious;
+        this.proofCurrent = this.proofPrevious;
+    }
+    sendAlert() {
+        console.log('send email');
+        console.log(this.recordId)
+        sendEmailAlert(this.recordId)
+    }
 }

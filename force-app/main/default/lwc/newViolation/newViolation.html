@@ -1,24 +1,29 @@
 <template>
     <lightning-card title="Violation" icon-name="standard:record">
-        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
-            <span class="record-header">№{nameValue}</span>
+        <div class="slds-grid slds-wrap">
+            <div class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
+                <span class="record-header">№{nameValue}</span>
+            </div>
+            <div class="slds-col_bump-right"></div>
+            <div
+                class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-button label="Send Alert" variant="destructive-text" onclick={sendAlert}>
+                </lightning-button>
+            </div>
         </div>
-        <div class="slds-m-around_medium slds-box">
-            <!-- <lightning-input label="Name" onchange={handleNameChange} class="slds-m-bottom_x-small"></lightning-input> -->
 
+
+        <div class="slds-m-around_medium slds-box">
             <div class="slds-grid slds-wrap">
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-combobox name={statusFieldLabel} 
-                        label={statusFieldLabel} 
-                        value={status} 
-                        placeholder={statusFieldLabel}
-                        options={statusOptions} 
-                        onchange={changeStatus}
-                        required>
+                <div
+                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                    <lightning-combobox name={statusFieldLabel} label={statusFieldLabel} value={statusCurrent}
+                        placeholder={statusFieldLabel} options={statusOptions} onchange={changeStatus} required>
                     </lightning-combobox>
                 </div>
                 <div class="slds-col_bump-right"></div>
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <div
+                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
                     <div class="slds-form-element slds-m-vertical_xx-small">
                         <label class="slds-form-element__label" for="combobox-id-1">
                             <abbr class="slds-required" title="required">*</abbr>
@@ -26,19 +31,28 @@
                         </label>
                         <div class="slds-form-element__control ">
                             <div class="slds-combobox_container">
-                                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click" onclick={togglePicklist} aria-expanded="false" aria-haspopup="listbox" role="combobox">
-                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right" role="none">
-                                        <input value={markValue} type="text" class={inputBackground} id="combobox-id-1" aria-controls="listbox-id-1" autocomplete="off" role="textbox" placeholder="Select an Option" readonly />
+                                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click"
+                                    onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
+                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                        role="none">
+                                        <input value={markCurrent} type="text" class={inputBackground}
+                                            id="combobox-id-1" aria-controls="listbox-id-1" autocomplete="off"
+                                            role="textbox" placeholder="Select an Option" readonly />
                                     </div>
-                                    <div id="listbox-id-1" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
+                                    <div id="listbox-id-1"
+                                        class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
                                         <ul class="slds-listbox slds-listbox_vertical" role="presentation">
                                             <template for:each={markOptions} for:item="option">
-                                                <li role="presentation"  class="" key={option.label}>
-                                                    <div id={option.label} title={option.value} class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small" role="option">
+                                                <li role="presentation" class="" key={option.label}>
+                                                    <div id={option.label} title={option.value}
+                                                        class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                        role="option">
                                                         <div title={option.value} class={option.class}></div>
-                                                        <span title={option.value} class="slds-media__figure slds-listbox__option-icon"></span>
+                                                        <span title={option.value}
+                                                            class="slds-media__figure slds-listbox__option-icon"></span>
                                                         <span title={option.value} class="slds-media__body">
-                                                        <span title={option.value} class="slds-truncate">{option.value}</span>
+                                                            <span title={option.value}
+                                                                class="slds-truncate">{option.value}</span>
                                                         </span>
                                                     </div>
                                                 </li>
@@ -51,38 +65,51 @@
                     </div>
                 </div>
 
-                <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-input-rich-text
-                        value={descriptionValue}
-                        label={descriptionFieldLabel}
-                        label-visible
-                        required>
+                <div
+                    class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                    <lightning-input-rich-text value={descriptionCurrent} label={descriptionFieldLabel}
+                        onchange={changeDescription} label-visible required>
                     </lightning-input-rich-text>
                 </div>
-
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                        <lightning-input-rich-text
-                            value={proofValue}
-                            label={proofFieldLabel}
-                            label-visible
-                            required>
-                        </lightning-input-rich-text>
-                    </div>
-                    <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                        <lightning-file-upload
-                            label="Attach proof"
-                            name="fileUploader"
-                            accept={acceptedFormats}
-                            record-id={recordId}
-                            onuploadfinished={handleUploadFinished}
-                            multiple>
-                        </lightning-file-upload>
-                    </div>
+                <div
+                    class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                    <lightning-input-rich-text value={proofCurrent} label={proofFieldLabel} onchange={changeProof}
+                        label-visible required>
+                    </lightning-input-rich-text>
                 </div>
-        <!-- <lightning-button label="Create violation" variant="brand" onclick={createViolation}></lightning-button> -->
+                <div
+                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                    <lightning-file-upload label="Attach proof" name="fileUploader" accept={acceptedFormats}
+                        record-id={recordId} onuploadfinished={handleUploadFinished} multiple>
+                    </lightning-file-upload>
+                </div>
+            </div>
         </div>
-        <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
-            <span class="record-footer">Created by {createdByNameValue}, {creationDateValue}</span>
-        </div>
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+        </template>
+        <template if:true={isChanged}>
+            <div class="slds-grid slds-wrap">
+                <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
+                <div
+                    class="slds-col slds-large-size_1-of-12 slds-small-size_3-of-12 slds-size_5-of-12 slds-align_absolute-center">
+                    <lightning-button label={actionType} variant="brand" onclick={upsertViolation}>
+                    </lightning-button>
+                </div>
+                <div
+                    class="slds-col slds-large-size_1-of-12 slds-small-size_3-of-12 slds-size_5-of-12 slds-align_absolute-center">
+                    <lightning-button label="Cancel" variant="neutral" onclick={cancel}>
+                    </lightning-button>
+                </div>
+                <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
+            </div>
+        </template>
+        <template if:true={recordId}>
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
+                <span class="record-footer">Created by {createdByNameValue}, {creationDateValue}</span>
+            </div>
+        </template>
+
     </lightning-card>
-</template> 
+</template>
