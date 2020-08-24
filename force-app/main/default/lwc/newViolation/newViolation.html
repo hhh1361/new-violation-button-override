@@ -1,93 +1,167 @@
 <template>
     <lightning-card title="Violation" icon-name="standard:record">
-        <div class="slds-grid slds-wrap">
-            <div class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
-                <span class="record-header">№{nameValue}</span>
-            </div>
-            <div class="slds-col_bump-right"></div>
-            <div
-                class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-button label="Send Alert" variant="destructive-text" onclick={sendAlert}>
-                </lightning-button>
-            </div>
-        </div>
-
-
-        <div class="slds-m-around_medium slds-box">
+        <template if:true={showHeader}>
             <div class="slds-grid slds-wrap">
-                <div
-                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-combobox name={statusFieldLabel} label={statusFieldLabel} value={statusCurrent}
-                        placeholder={statusFieldLabel} options={statusOptions} onchange={changeStatus} required>
-                    </lightning-combobox>
+
+                <!-- name readonly field -->
+                <div class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
+                    <span class="record-header">№{nameValue}</span>
                 </div>
                 <div class="slds-col_bump-right"></div>
-                <div
-                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <div class="slds-form-element slds-m-vertical_xx-small">
-                        <label class="slds-form-element__label" for="combobox-id-1">
-                            <abbr class="slds-required" title="required">*</abbr>
-                            {markFieldLabel}
-                        </label>
-                        <div class="slds-form-element__control ">
-                            <div class="slds-combobox_container">
-                                <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click"
-                                    onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
-                                    <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
-                                        role="none">
-                                        <input value={markCurrent} type="text" class={inputBackground}
-                                            id="combobox-id-1" aria-controls="listbox-id-1" autocomplete="off"
-                                            role="textbox" placeholder="Select an Option" readonly />
-                                    </div>
-                                    <div id="listbox-id-1"
-                                        class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid" role="listbox">
-                                        <ul class="slds-listbox slds-listbox_vertical" role="presentation">
-                                            <template for:each={markOptions} for:item="option">
-                                                <li role="presentation" class="" key={option.label}>
-                                                    <div id={option.label} title={option.value}
-                                                        class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
-                                                        role="option">
-                                                        <div title={option.value} class={option.class}></div>
+
+                <!-- send alert button -->
+                <div class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
+                    <template if:true={showSendAlert}>
+                        <lightning-button label="Send Alert" variant="destructive-text" onclick={sendAlert}>
+                        </lightning-button>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+
+        <div class="slds-m-around_medium slds-box slds-grid slds-wrap">
+
+            <!-- status standart picklist -->
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-combobox name="Status" label="Status" value={statusCurrent} placeholder="Status"
+                    options={statusOptions} onchange={changeStatus} required>
+                </lightning-combobox>
+            </div>
+            <div class="slds-col_bump-right"></div>
+
+            <!-- mark custom picklist -->
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <div class="slds-form-element slds-m-vertical_xx-small">
+                    <label class="slds-form-element__label" for="combobox-id-1">
+                        <abbr class="slds-required" title="required">*</abbr>
+                        Mark
+                    </label>
+                    <div class="slds-form-element__control ">
+                        <div class="slds-combobox_container">
+                            <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click"
+                                onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
+                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                    role="none">
+                                    <input value={markCurrent} type="text" class={inputBackground} id="combobox-id-1"
+                                        aria-controls="listbox-id-1" autocomplete="off" role="textbox"
+                                        placeholder="Select an Option" readonly />
+                                </div>
+                                <div id="listbox-id-1" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
+                                    role="listbox">
+                                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                        <template for:each={markOptions} for:item="option">
+                                            <li role="presentation" class="" key={option.label}>
+                                                <div id={option.label} title={option.value}
+                                                    class="slds-media slds-listbox__option slds-listbox__option_plain slds-media_small"
+                                                    role="option">
+                                                    <div title={option.value} class={option.class}></div>
+                                                    <span title={option.value}
+                                                        class="slds-media__figure slds-listbox__option-icon"></span>
+                                                    <span title={option.value} class="slds-media__body">
                                                         <span title={option.value}
-                                                            class="slds-media__figure slds-listbox__option-icon"></span>
-                                                        <span title={option.value} class="slds-media__body">
-                                                            <span title={option.value}
-                                                                class="slds-truncate">{option.value}</span>
-                                                        </span>
-                                                    </div>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
+                                                            class="slds-truncate">{option.value}</span>
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        </template>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div
-                    class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-input-rich-text value={descriptionCurrent} label={descriptionFieldLabel}
-                        onchange={changeDescription} label-visible required>
-                    </lightning-input-rich-text>
-                </div>
-                <div
-                    class="slds-col slds-size_1-of-1 slds-medium-size_8-of-12 slds-large-size_8-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-input-rich-text value={proofCurrent} label={proofFieldLabel} onchange={changeProof}
-                        label-visible required>
-                    </lightning-input-rich-text>
-                </div>
-                <div
-                    class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                    <lightning-file-upload label="Attach proof" name="fileUploader" accept={acceptedFormats}
-                        record-id={recordId} onuploadfinished={handleUploadFinished} multiple>
-                    </lightning-file-upload>
+            <!-- description rich text input -->
+            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-input-rich-text value={descriptionCurrent} label="Description" onchange={changeDescription}
+                    label-visible required>
+                </lightning-input-rich-text>
+            </div>
+
+            <!-- proof rich text input -->
+            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-input-rich-text value={proofCurrent} label="Proof" onchange={changeProof} label-visible>
+                </lightning-input-rich-text>
+            </div>
+
+
+
+            <!-- marketing partner custom lookup -->
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <template if:true={marketingPartnerNameCurrent}>
+                    <span>Marketing Partner</span>
+                </template>
+                <div class="slds-form-element">
+                    <div class="slds-form-element__control">
+                        <div class="slds-combobox_container">
+                            <div id="box" class={boxClass} aria-expanded="true" aria-haspopup="listbox" role="combobox">
+                                <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
+                                    role="none">
+                                    <template if:true={isValueSelected}>
+                                        <div id="lookup-pill" class="slds-pill-container">
+                                            <lightning-pill class="pillSize" label={marketingPartnerNameCurrent}
+                                                name={marketingPartnerNameCurrent} onremove={handleRemovePill}
+                                                href={href}>
+                                                <lightning-icon icon-name="standard:account"></lightning-icon>
+                                            </lightning-pill>
+                                        </div>
+                                    </template>
+                                    <template if:false={isValueSelected}>
+                                        <div class="slds-p-top_none">
+                                            <lightning-input class={inputClass} type="search" id="input"
+                                                value={searchTerm} onclick={handleClick} onblur={onBlur}
+                                                onchange={onSearchChange} label="Marketing Partner" autocomplete="off"
+                                                placeholder={searchPlaceholder}>
+                                            </lightning-input>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div id="listbox-id-2"
+                                    class="slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid"
+                                    role="listbox">
+                                    <ul class="slds-listbox slds-listbox_vertical" role="presentation">
+                                        <template for:each={marketingPartnersOptions} for:item="option">
+                                            <li key={option.Id} onclick={onSelect} data-id={option.Id}
+                                                role="presentation" data-name={option.Name}>
+                                                <span class="slds-lookup__item-action slds-lookup__item-action--label"
+                                                    role="option">
+                                                    <lightning-icon
+                                                        class="slds-icon slds-icon--small slds-icon-text-default"
+                                                        icon-name={iconName} alternative-text={objName} size="small">
+                                                    </lightning-icon>
+                                                    <span class="slds-truncate">{option.Name}</span>
+                                                </span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+            <div class="slds-col_bump-right"></div>
+            <!-- status standart picklist -->
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-combobox name="Actions Required" label="Actions Required" value={actionsRequiredCurrent} placeholder="Actions Required"
+                    options={actionsRequiredOptions} onchange={changeActionsRequired}>
+                </lightning-combobox>
+            </div>
         </div>
+
+
+        <!-- spinner -->
         <template if:true={isLoading}>
             <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
         </template>
+
+        <!-- save and cancel button -->
         <template if:true={isChanged}>
             <div class="slds-grid slds-wrap">
                 <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
@@ -104,74 +178,52 @@
                 <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
             </div>
         </template>
-        <template if:true={recordId}>
+        <template if:true={showFooter}>
+
+            <!-- Created by readonly information -->
             <div
                 class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
                 <span class="record-footer">Created by {createdByNameValue}, {creationDateValue}</span>
             </div>
-            <lightning-button class="slds-m-horizontal_medium" label="Log" variant="brand-outline" onclick={handlePopup}>
 
+            <!-- log modal with datatable -->
+            <lightning-button class="slds-m-horizontal_medium" label="Log" variant="brand-outline"
+                onclick={handlePopup}>
             </lightning-button>
             <div class="chart slds-m-around_medium" lwc:dom="manual"></div>
-            <section
-              id="modal"
-              role="dialog"
-              tabindex="-1"
-              aria-labelledby="modal-heading-01"
-              aria-modal="true"
-              aria-describedby="modal-content-id-1"
-              class="slds-modal slds-fade-in-open slds-hide"
-            >
-              <div class="slds-modal__container">
-                <header class="slds-modal__header">
-                  <button
-                    class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
-                    title="Close"
-                  >
-                    <svg
-                      class="slds-button__icon slds-button__icon_large"
-                      aria-hidden="true"
-                    >
-                      <use
-                        xlink:href="/assets/icons/utility-sprite/svg/symbols.svg#close"
-                      ></use>
-                    </svg>
-                    <span class="slds-assistive-text">Close</span>
-                  </button>
-                  <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
-                    Log
-                  </h2>
-                </header>
-                <div
-                  class="slds-modal__content slds-p-around_medium"
-                  id="modal-content-id-1"
-                >
-                  <div class="slds-p-bottom_large slds-p-left_large">
-                        <lightning-datatable
-                                key-field="id"
-                                data={logData}
-                                columns={logColumns}
+            <section id="modal" role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
+                aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open slds-hide">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                            title="Close">
+                            <span class="slds-assistive-text">Close</span>
+                        </button>
+                        <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+                            Log
+                        </h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                        <div class="slds-p-bottom_large slds-p-left_large">
+                            <lightning-datatable key-field="id" data={logData} columns={logColumns}
                                 hide-checkbox-column>
-                        </lightning-datatable>
-                  </div>
+                            </lightning-datatable>
+                        </div>
+                    </div>
+                    <footer class="slds-modal__footer slds-modal__footer_directional">
+                        <button class="slds-button slds-button_neutral" onclick={handleSkip}>
+                            Close
+                        </button>
+                    </footer>
                 </div>
-                <footer class="slds-modal__footer slds-modal__footer_directional">
-                  <button class="slds-button slds-button_neutral" onclick={handleSkip}>
-                    Close
-                  </button>
-                </footer>
-              </div>
             </section>
-            <div
-              class="slds-backdrop slds-backdrop_open slds-hide modalBackdrops"
-              id="modalBackdrops"
-            ></div>
- 
+            <div class="slds-backdrop slds-backdrop_open slds-hide modalBackdrops" id="modalBackdrops"></div>
+
         </template>
 
 
 
-        
+
 
     </lightning-card>
 </template>

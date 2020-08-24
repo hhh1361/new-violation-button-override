@@ -1,8 +1,9 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { createRecord, getRecord, updateRecord  } from 'lightning/uiRecordApi';
-import { getPicklistValues , getObjectInfo } from 'lightning/uiObjectInfoApi'
+import { getPicklistValues } from 'lightning/uiObjectInfoApi'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import selectById from '@salesforce/apex/UsersSelector.selectById';
+import search from '@salesforce/apex/Lookup.search';
 import sendEmailAlert from '@salesforce/apex/newViolationController.sendEmailAlert';
 import getLogs from '@salesforce/apex/newViolationController.getLogs';
 import VIOLATION_OBJECT from '@salesforce/schema/Violation__c';
@@ -14,51 +15,73 @@ import PROOF_FIELD from '@salesforce/schema/Violation__c.Proof__c';
 import DESCRIPTION_FIELD from '@salesforce/schema/Violation__c.Description__c';
 import CREATEDBYID_FIELD from '@salesforce/schema/Violation__c.CreatedById';
 import CREATIONDATE_FIELD from '@salesforce/schema/Violation__c.Creation_Date__c';
+import MARKETING_PARTNER_FIELD from '@salesforce/schema/Violation__c.Marketing_Partner__c';
 
 
 const FIELDS = [
-    MARK_FIELD.objectApiName + '.' + MARK_FIELD.fieldApiName,
-    STATUS_FIELD.objectApiName + '.' + STATUS_FIELD.fieldApiName,
-    NAME_FIELD.objectApiName + '.' + NAME_FIELD.fieldApiName,
-    PROOF_FIELD.objectApiName + '.' + PROOF_FIELD.fieldApiName,
-    DESCRIPTION_FIELD.objectApiName + '.' + DESCRIPTION_FIELD.fieldApiName,
-    CREATEDBYID_FIELD.objectApiName + '.' + CREATEDBYID_FIELD.fieldApiName,
-    CREATIONDATE_FIELD.objectApiName + '.' + CREATIONDATE_FIELD.fieldApiName,
+    'Violation__c.Mark__c',
+    'Violation__c.Status__c',
+    'Violation__c.Name',
+    'Violation__c.Proof__c',
+    'Violation__c.Description__c',
+    'Violation__c.CreatedById',
+    'Violation__c.Creation_Date__c',
+    'Violation__c.Marketing_Partner__r.Name',
+    'Violation__c.Actions_required__c'
 ];
 
 export default class NewViolation extends LightningElement {
     @api recordId;
     @api recordTypeId;
+    @api isCalledFromAura;
+    get recordActionType() {
+        return this.isCalledFromAura ? this.recordId ? 'edit' : 'create' : 'view';
+    } 
+    get showHeader() {
+        return this.recordActionType !== 'create'
+    }
+    get showSendAlert() {
+        return this.recordActionType === 'view'
+    }
+    get showFooter() {
+        return this.recordActionType === 'view'
+    }
+
     
-    @api markFieldLabel = 'Mark';
     @api markCurrent;
     @api markPrevious;
     @track markOptions;
     @api inputBackground = "slds-input slds-combobox__input"
 
-    @api statusFieldLabel = 'Status';
     @track statusOptions;
     @api statusCurrent;
     @api statusPrevious;
 
-    @api descriptionFieldLabel = 'Description';
+    @track actionsRequiredOptions;
+    @api actionsRequiredCurrent;
+    @api actionsRequiredPrevious;
+
     @api descriptionCurrent;
     @api descriptionPrevious;
 
-
-    @api proofFieldLabel = 'Proof';
     @api proofCurrent;
     @api proofPrevious;
 
-    @api nameValue
-    @api createdByIdValue
-    @api creationDateValue
-    @api createdByNameValue
+    @api marketingPartnerNameCurrent;
+    @api marketingPartnerNamePrevious;
+    @api marketingPartnerIdCurrent;
+    @api marketingPartnerIdPrevious;
+    @track marketingPartnersOptions;
 
-    @api actionType = this.recordId ? 'Create violation' : 'Save'
+    @api nameValue;
+    @api createdByIdValue;
+    @api creationDateValue;
+    @api createdByNameValue;
+
+    @api actionType = this.recordId ? 'Create violation' : 'Save';
     @api isChanged;
 
-    @api logData
+    @api logData;
     logColumns = [
         { label: 'Time', fieldName: 'time', type: 'date', typeAttributes:{
             year: "numeric",
@@ -74,14 +97,15 @@ export default class NewViolation extends LightningElement {
 
 
     connectedCallback() {
-        console.log(this.recordId)
+        // console.log(this.recordId)
     }
     get isChanged() {
         return !this.recordId ||
         this.statusCurrent !== this.statusPrevious ||
         this.markCurrent !== this.markPrevious ||
         this.descriptionCurrent !== this.descriptionPrevious ||
-        this.proofCurrent !== this.proofPrevious
+        this.proofCurrent !== this.proofPrevious ||
+        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious
     }
     @api isLoading = false;
 
@@ -98,16 +122,24 @@ export default class NewViolation extends LightningElement {
             this.descriptionPrevious = data.fields.Description__c.value;
             this.proofCurrent = data.fields.Proof__c.value;
             this.proofPrevious = data.fields.Proof__c.value;
+            if(data.fields.Marketing_Partner__r.value) {
+                this.marketingPartnerNameCurrent = data.fields.Marketing_Partner__r.displayValue;
+                this.marketingPartnerNamePrevious = data.fields.Marketing_Partner__r.displayValue;
+                this.marketingPartnerIdCurrent = data.fields.Marketing_Partner__r.value.id;
+                this.marketingPartnerIdPrevious = data.fields.Marketing_Partner__r.value.id;
+                this.isValueSelected = true;
+            }
             this.nameValue = data.fields.Name.value;
             this.createdByIdValue = data.fields.CreatedById.value;
             this.creationDateValue = data.fields.Creation_Date__c.displayValue;
+
         } else if (error) {
             console.log('Error fetching record info:');
             console.log(error)
         }
     }
 
-    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: MARK_FIELD.objectApiName + '.' + MARK_FIELD.fieldApiName})
+    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: 'Violation__c.Mark__c'})
     getMarkOptions({ data, error }) {
         if (data) {
             this.markOptions = data.values.map(i => {
@@ -124,7 +156,7 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: STATUS_FIELD.objectApiName + '.' + STATUS_FIELD.fieldApiName})
+    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: 'Violation__c.Status__c'})
     getStatusOptions({ data, error }) {
         if (data) {
             this.statusOptions = data.values.map(i => {
@@ -140,6 +172,23 @@ export default class NewViolation extends LightningElement {
         }
     }
 
+    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: 'Violation__c.Actions_required__c'})
+    getActionsRequiredOptions({ data, error }) {
+        console.log(data)
+        if (data) {
+            this.actionsRequiredOptions = data.values.map(i => {
+                return {
+                    label: i.label,
+                    value: i.value,
+                };
+            });
+
+        } else if (error) {
+            console.log('Error fetching Actions Required options:');
+            console.log(error)
+        }
+    }
+
     @wire(selectById, { id: '$createdByIdValue' })
     getName({ data, error }) {
         if (data) {
@@ -150,31 +199,6 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-
-
-
-    get acceptedFormats() {
-        return ['.pdf', '.png', '.bmp'];
-    }
-
-    handleUploadFinished(event) {
-        const uploadedFiles = event.detail.files;
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Success',
-                message: `No. of files uploaded : ${uploadedFiles.length}. Refresh the page to access them.`,
-                variant: 'success',
-            }),
-        );
-    }
-
-
-
-
-
-    changeStatus(event) {
-        this.statusCurrent = event.detail.value;
-    }
 
     get inputBackground() {
         return this.markCurrent ? 
@@ -187,6 +211,14 @@ export default class NewViolation extends LightningElement {
             this.markCurrent = e.target.getAttribute('title');
         }
         e.currentTarget.classList.toggle('slds-is-open');
+    }
+
+    changeStatus(event) {
+        this.statusCurrent = event.detail.value;
+    }
+
+    changeActionsRequired(event) {
+        this.statusCurrent = event.detail.value;
     }
 
     changeDescription(e) {
@@ -207,15 +239,18 @@ export default class NewViolation extends LightningElement {
                 [STATUS_FIELD.fieldApiName]: this.statusCurrent,
                 [PROOF_FIELD.fieldApiName]: this.proofCurrent,
                 [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+                [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
             };
             const recordInput = { fields };
             updateRecord(recordInput)
-                .then(violation => {
+                .then( () => {
                     this.isLoading = false;
                     this.statusPrevious = this.statusCurrent;
                     this.markPrevious = this.markCurrent;
                     this.descriptionPrevious = this.descriptionCurrent;
                     this.proofPrevious = this.proofCurrent;
+                    this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
+                    this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
                     
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -226,6 +261,7 @@ export default class NewViolation extends LightningElement {
                     );
                 })
                 .catch(error => {
+                    console.log(error)
                     this.isLoading = false;
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -242,10 +278,11 @@ export default class NewViolation extends LightningElement {
                 [STATUS_FIELD.fieldApiName]: this.statusCurrent,
                 [PROOF_FIELD.fieldApiName]: this.proofCurrent,
                 [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+                [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
             };
             const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
             createRecord(recordInput)
-                .then(violation => {
+                .then( () => {
                     this.isLoading = false;
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -327,5 +364,75 @@ export default class NewViolation extends LightningElement {
       this.template
         .querySelector("div.modalBackdrops")
         .classList.add("slds-hide");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @api objName = "Marketing_Partner__c"
+    @api filter = '';
+    @api searchPlaceholder='Search';
+
+    @track isValueSelected;
+    @track blurTimeout;
+
+    searchTerm;
+    //css
+    @track boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
+    @track inputClass = '';
+
+    @wire(search, {searchTerm : '$searchTerm', myObject : "Marketing_Partner__c", filter : '$filter'})
+    wiredRecords({ error, data }) {
+        if (data) {
+            this.marketingPartnersOptions = data;
+        } else if (error) {
+            console.log('Error while fetching marketing partner options');
+            console.log(error)
+        }
+    }
+
+
+    handleClick() {
+        this.searchTerm = '';
+        this.inputClass = 'slds-has-focus';
+        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus slds-is-open';
+    }
+
+    onBlur() {
+        this.blurTimeout = setTimeout(() =>  {
+            this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus'
+        }, 300);
+    }
+
+    onSelect(event) {
+        this.isValueSelected = true;
+        this.marketingPartnerIdCurrent = event.currentTarget.dataset.id;
+        this.marketingPartnerNameCurrent = event.currentTarget.dataset.name;
+        if(this.blurTimeout) {
+            clearTimeout(this.blurTimeout);
+        }
+        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
+    }
+
+    handleRemovePill() {
+        this.isValueSelected = false;
+        this.marketingPartnerIdCurrent = null;
+        this.marketingPartnerNameCurrent = null;
+    }
+
+    onSearchChange(event) {
+        this.searchTerm = event.target.value;
     }
 }

@@ -1,5 +1,4 @@
 <aura:component 
     implements="lightning:actionOverride,force:hasRecordId,force:hasSObjectName">
-    <aura:attribute name="recordId" type="String" />
-    <c:newViolation recordId="{v.recordId}"></c:newViolation>
+    <c:newViolation recordId="{!v.recordId}" isCalledFromAura="true"></c:newViolation>
 </aura:component>	
