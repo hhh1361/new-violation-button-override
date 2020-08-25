@@ -29,7 +29,7 @@ const FIELDS = [
     'Violation__c.CreatedById',
     'Violation__c.Creation_Date__c',
     'Violation__c.Marketing_Partner__r.Name',
-    'Violation__c.Actions_required__c'
+    'Violation__c.Actions_Required__c'
 ];
 
 export default class NewViolation extends LightningElement {
@@ -51,6 +51,10 @@ export default class NewViolation extends LightningElement {
     get showSaveCancel() {
         return this.recordActionType !== 'view' || this.isChanged
     }
+    get showActionsRequired() {
+        return this.recordActionType === 'view' || !this.isChanged
+    }
+
 
     
     @api markCurrent = '';
@@ -62,9 +66,7 @@ export default class NewViolation extends LightningElement {
     @api statusCurrent;
     @api statusPrevious;
 
-    @track actionsRequiredOptions;
-    @api actionsRequiredCurrent;
-    @api actionsRequiredPrevious;
+
 
     @api descriptionCurrent = '<p></p>';
     @api descriptionPrevious = '<p></p>';
@@ -79,6 +81,7 @@ export default class NewViolation extends LightningElement {
     @track marketingPartnersOptions;
 
     @api nameValue;
+    @api actionsRequired;
     @api createdByIdValue;
     @api creationDateValue;
     @api createdByNameValue;
@@ -101,19 +104,13 @@ export default class NewViolation extends LightningElement {
         { label: 'Details', fieldName: 'details' },
     ]
 
-
-    connectedCallback() {
-        console.log(this.markCurrent)
-    }
     get isChanged() {
         return !this.recordId ||
         this.statusCurrent !== this.statusPrevious ||
         this.markCurrent !== this.markPrevious ||
         this.descriptionCurrent !== this.descriptionPrevious ||
         this.proofCurrent !== this.proofPrevious ||
-        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious ||
-        this.actionsRequiredCurrent !== this.actionsRequiredPrevious
-        
+        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious 
     }
 
     @wire(getObjectInfo, { objectApiName: VIOLATION_OBJECT })
@@ -135,8 +132,7 @@ export default class NewViolation extends LightningElement {
             this.markPrevious = data.fields.Mark__c.value; 
             this.statusCurrent = data.fields.Status__c.value;
             this.statusPrevious = data.fields.Status__c.value;
-            this.actionsRequiredCurrent = data.fields.Actions_required__c.value;
-            this.actionsRequiredPrevious = data.fields.Actions_required__c.value;
+            this.actionsRequired = data.fields.Actions_Required__c.value;
             if(data.fields.Description__c.value) {
                 this.descriptionCurrent = data.fields.Description__c.value;
                 this.descriptionPrevious = data.fields.Description__c.value;
@@ -202,22 +198,6 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-    @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: 'Violation__c.Actions_required__c'})
-    getActionsRequiredOptions({ data, error }) {
-        if (data) {
-            this.actionsRequiredOptions = data.values.map(i => {
-                return {
-                    label: i.label,
-                    value: i.value,
-                };
-            });
-
-        } else if (error) {
-            console.log('Error fetching Actions Required options:');
-            console.log(error)
-        }
-    }
-
     @wire(selectById, { id: '$createdByIdValue' })
     getName({ data, error }) {
         if (data) {
@@ -246,10 +226,6 @@ export default class NewViolation extends LightningElement {
         this.statusCurrent = event.detail.value;
     }
 
-    changeActionsRequired(event) {
-        this.actionsRequiredCurrent = event.detail.value;
-    }
-
     changeDescription(e) {
         this.descriptionCurrent = e.detail.value;
     }
@@ -266,8 +242,7 @@ export default class NewViolation extends LightningElement {
             [STATUS_FIELD.fieldApiName]: this.statusCurrent,
             [PROOF_FIELD.fieldApiName]: this.proofCurrent,
             [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
-            [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
-            [ACTIONS_REQUIRED_FIELD.fieldApiName]: this.actionsRequiredCurrent
+            [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent
         };
 
         if(this.recordId) {
@@ -283,7 +258,6 @@ export default class NewViolation extends LightningElement {
                     this.proofPrevious = this.proofCurrent;
                     this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
                     this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
-                    this.actionsRequiredPrevious = this.actionsRequiredCurrent;
                     this.dispatchEvent(new CustomEvent('close'));
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -343,7 +317,6 @@ export default class NewViolation extends LightningElement {
         this.proofCurrent = this.proofPrevious;
         this.marketingPartnerIdCurrent = this.marketingPartnerIdPrevious;
         this.marketingPartnerNameCurrent = this.marketingPartnerNamePrevious;
-        this.actionsRequiredCurrent = this.actionsRequiredPrevious;
         if(this.marketingPartnerIdPrevious) {
             this.isValueSelected = true;
         }

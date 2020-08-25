@@ -1,6 +1,5 @@
 ({
 	closeQA : function(component, event, helper) {
-        console.log('controller')
         if(component.get('v.recordId')) {
             var navigateEvent = $A.get("e.force:navigateToSObject");
             navigateEvent.setParams({ "recordId": component.get('v.recordId') });
