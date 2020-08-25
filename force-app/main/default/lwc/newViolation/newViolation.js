@@ -66,11 +66,11 @@ export default class NewViolation extends LightningElement {
     @api actionsRequiredCurrent;
     @api actionsRequiredPrevious;
 
-    @api descriptionCurrent;
-    @api descriptionPrevious;
+    @api descriptionCurrent = '<p></p>';
+    @api descriptionPrevious = '<p></p>';
 
-    @api proofCurrent;
-    @api proofPrevious;
+    @api proofCurrent = '<p></p>';
+    @api proofPrevious = '<p></p>';
 
     @api marketingPartnerNameCurrent;
     @api marketingPartnerNamePrevious;
@@ -113,7 +113,7 @@ export default class NewViolation extends LightningElement {
         this.proofCurrent !== this.proofPrevious ||
         this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious ||
         this.actionsRequiredCurrent !== this.actionsRequiredPrevious
-
+        
     }
 
     @wire(getObjectInfo, { objectApiName: VIOLATION_OBJECT })
@@ -135,12 +135,22 @@ export default class NewViolation extends LightningElement {
             this.markPrevious = data.fields.Mark__c.value; 
             this.statusCurrent = data.fields.Status__c.value;
             this.statusPrevious = data.fields.Status__c.value;
-            this.descriptionCurrent = data.fields.Description__c.value;
-            this.descriptionPrevious = data.fields.Description__c.value;
             this.actionsRequiredCurrent = data.fields.Actions_required__c.value;
             this.actionsRequiredPrevious = data.fields.Actions_required__c.value;
-            this.proofCurrent = data.fields.Proof__c.value;
-            this.proofPrevious = data.fields.Proof__c.value;
+            if(data.fields.Description__c.value) {
+                this.descriptionCurrent = data.fields.Description__c.value;
+                this.descriptionPrevious = data.fields.Description__c.value;
+            } else {
+                this.descriptionCurrent = '';
+                this.descriptionPrevious = '';
+            }
+            if(data.fields.Proof__c.value) {
+                this.proofCurrent = data.fields.Proof__c.value;
+                this.proofPrevious = data.fields.Proof__c.value;
+            } else {
+                this.proofCurrent = '';
+                this.proofPrevious = '';
+            }
             if(data.fields.Marketing_Partner__r.value) {
                 this.marketingPartnerNameCurrent = data.fields.Marketing_Partner__r.displayValue;
                 this.marketingPartnerNamePrevious = data.fields.Marketing_Partner__r.displayValue;
@@ -274,7 +284,7 @@ export default class NewViolation extends LightningElement {
                     this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
                     this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
                     this.actionsRequiredPrevious = this.actionsRequiredCurrent;
-                    
+                    this.dispatchEvent(new CustomEvent('close'));
                     this.dispatchEvent(
                         new ShowToastEvent({
                             title: 'Success',
@@ -284,6 +294,7 @@ export default class NewViolation extends LightningElement {
                     );
                 })
                 .catch(error => {
+                    console.log(error)
                     this.isLoading = false;
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -299,6 +310,7 @@ export default class NewViolation extends LightningElement {
             createRecord(recordInput)
                 .then( () => {
                     this.isLoading = false;
+                    this.dispatchEvent(new CustomEvent('close'));
                     this.dispatchEvent(
                         new ShowToastEvent({
                             title: 'Success',
@@ -308,6 +320,7 @@ export default class NewViolation extends LightningElement {
                     );
                 })
                 .catch(error => {
+                    console.log(error)
                     this.isLoading = false;
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -324,7 +337,6 @@ export default class NewViolation extends LightningElement {
         if(this.recordActionType !== "view") {
             this.dispatchEvent(new CustomEvent('close'));
         }
-
         this.statusCurrent = this.statusPrevious;
         this.markCurrent = this.markPrevious;
         this.descriptionCurrent = this.descriptionPrevious;
