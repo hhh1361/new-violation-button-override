@@ -18,7 +18,7 @@
                 </div>
             </div>
         </template>
-
+        
 
         <div class="slds-m-around_medium slds-box slds-grid slds-wrap">
 
@@ -92,7 +92,7 @@
 
             <!-- marketing partner custom lookup -->
             <div
-                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-large-size_5-of-12 slds-m-vertical_xx-small slds-p-around_medium">
                 <template if:true={marketingPartnerNameCurrent}>
                     <span>Marketing Partner</span>
                 </template>
@@ -107,7 +107,7 @@
                                             <lightning-pill class="pillSize" label={marketingPartnerNameCurrent}
                                                 name={marketingPartnerNameCurrent} onremove={handleRemovePill}
                                                 href={href}>
-                                                <lightning-icon icon-name="standard:account"></lightning-icon>
+                                                <lightning-icon icon-name="standard:record"></lightning-icon>
                                             </lightning-pill>
                                         </div>
                                     </template>
@@ -132,7 +132,7 @@
                                                     role="option">
                                                     <lightning-icon
                                                         class="slds-icon slds-icon--small slds-icon-text-default"
-                                                        icon-name={iconName} alternative-text={objName} size="small">
+                                                        icon-name="standard:record" alternative-text="Marketing Partner" size="small">
                                                     </lightning-icon>
                                                     <span class="slds-truncate">{option.Name}</span>
                                                 </span>
@@ -148,7 +148,7 @@
             <div class="slds-col_bump-right"></div>
             <!-- status standart picklist -->
             <div
-                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-large-size_5-of-12 slds-m-vertical_xx-small slds-p-around_medium">
                 <lightning-combobox name="Actions Required" label="Actions Required" value={actionsRequiredCurrent} placeholder="Actions Required"
                     options={actionsRequiredOptions} onchange={changeActionsRequired}>
                 </lightning-combobox>

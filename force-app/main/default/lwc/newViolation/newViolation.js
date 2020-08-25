@@ -16,6 +16,8 @@ import DESCRIPTION_FIELD from '@salesforce/schema/Violation__c.Description__c';
 import CREATEDBYID_FIELD from '@salesforce/schema/Violation__c.CreatedById';
 import CREATIONDATE_FIELD from '@salesforce/schema/Violation__c.Creation_Date__c';
 import MARKETING_PARTNER_FIELD from '@salesforce/schema/Violation__c.Marketing_Partner__c';
+import ACTIONS_REQUIRED_FIELD from '@salesforce/schema/Violation__c.Actions_required__c';
+
 
 
 const FIELDS = [
@@ -105,7 +107,9 @@ export default class NewViolation extends LightningElement {
         this.markCurrent !== this.markPrevious ||
         this.descriptionCurrent !== this.descriptionPrevious ||
         this.proofCurrent !== this.proofPrevious ||
-        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious
+        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious ||
+        this.actionsRequiredCurrent !== this.actionsRequiredPrevious
+
     }
     @api isLoading = false;
 
@@ -120,6 +124,8 @@ export default class NewViolation extends LightningElement {
             this.statusPrevious = data.fields.Status__c.value;
             this.descriptionCurrent = data.fields.Description__c.value;
             this.descriptionPrevious = data.fields.Description__c.value;
+            this.actionsRequiredCurrent = data.fields.Actions_required__c.value;
+            this.actionsRequiredPrevious = data.fields.Actions_required__c.value;
             this.proofCurrent = data.fields.Proof__c.value;
             this.proofPrevious = data.fields.Proof__c.value;
             if(data.fields.Marketing_Partner__r.value) {
@@ -129,6 +135,7 @@ export default class NewViolation extends LightningElement {
                 this.marketingPartnerIdPrevious = data.fields.Marketing_Partner__r.value.id;
                 this.isValueSelected = true;
             }
+
             this.nameValue = data.fields.Name.value;
             this.createdByIdValue = data.fields.CreatedById.value;
             this.creationDateValue = data.fields.Creation_Date__c.displayValue;
@@ -174,7 +181,6 @@ export default class NewViolation extends LightningElement {
 
     @wire(getPicklistValues, { recordTypeId: '$recordTypeId', fieldApiName: 'Violation__c.Actions_required__c'})
     getActionsRequiredOptions({ data, error }) {
-        console.log(data)
         if (data) {
             this.actionsRequiredOptions = data.values.map(i => {
                 return {
@@ -218,7 +224,7 @@ export default class NewViolation extends LightningElement {
     }
 
     changeActionsRequired(event) {
-        this.statusCurrent = event.detail.value;
+        this.actionsRequiredCurrent = event.detail.value;
     }
 
     changeDescription(e) {
@@ -231,16 +237,19 @@ export default class NewViolation extends LightningElement {
 
     upsertViolation() {
         this.isLoading = true;
+        const fields = {
+            [ID_FIELD.fieldApiName]: this.recordId,
+            [MARK_FIELD.fieldApiName]: this.markCurrent,
+            [STATUS_FIELD.fieldApiName]: this.statusCurrent,
+            [PROOF_FIELD.fieldApiName]: this.proofCurrent,
+            [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+            [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
+            [ACTIONS_REQUIRED_FIELD.fieldApiName]: this.actionsRequiredCurrent
+        };
+
         if(this.recordId) {
             //update existing record
-            const fields = {
-                [ID_FIELD.fieldApiName]: this.recordId,
-                [MARK_FIELD.fieldApiName]: this.markCurrent,
-                [STATUS_FIELD.fieldApiName]: this.statusCurrent,
-                [PROOF_FIELD.fieldApiName]: this.proofCurrent,
-                [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
-                [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
-            };
+            fields[ID_FIELD.fieldApiName] = this.recordId;
             const recordInput = { fields };
             updateRecord(recordInput)
                 .then( () => {
@@ -251,6 +260,7 @@ export default class NewViolation extends LightningElement {
                     this.proofPrevious = this.proofCurrent;
                     this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
                     this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
+                    this.actionsRequiredPrevious = this.actionsRequiredCurrent;
                     
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -261,7 +271,6 @@ export default class NewViolation extends LightningElement {
                     );
                 })
                 .catch(error => {
-                    console.log(error)
                     this.isLoading = false;
                     this.dispatchEvent(
                         new ShowToastEvent({
@@ -273,13 +282,6 @@ export default class NewViolation extends LightningElement {
                 });
         } else {
             //insert new record
-            const fields = {
-                [MARK_FIELD.fieldApiName]: this.markCurrent,
-                [STATUS_FIELD.fieldApiName]: this.statusCurrent,
-                [PROOF_FIELD.fieldApiName]: this.proofCurrent,
-                [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
-                [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent,
-            };
             const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
             createRecord(recordInput)
                 .then( () => {
@@ -310,23 +312,26 @@ export default class NewViolation extends LightningElement {
         this.markCurrent = this.markPrevious;
         this.descriptionCurrent = this.descriptionPrevious;
         this.proofCurrent = this.proofPrevious;
+        this.marketingPartnerIdCurrent = this.marketingPartnerIdPrevious;
+        this.marketingPartnerNameCurrent = this.marketingPartnerNamePrevious;
+        this.actionsRequiredCurrent = this.actionsRequiredPrevious;
+        if(this.marketingPartnerIdPrevious) {
+            this.isValueSelected = true;
+        }
     }
     sendAlert() {
-        console.log('send email');
-        console.log(this.recordId)
         sendEmailAlert({recordId: this.recordId})
-        .then(data => {
-            this.logData = data.map( e => {
-                return {
-                    time: e.CreatedDate,
-                    perfomedBy: e.CreatedBy.Name,
-                    action: e.Field.slice(0, -3),
-                    details: `${e.OldValue} => ${e.NewValue}`
-                }
-            })
+        .then( () => {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Email is sent',
+                    variant: 'success',
+                }),
+            );
         })
         .catch(error => {
-            console.log('Error while send mail:');
+            console.log('Error sending mail:');
             console.log(error)
         });
     }
