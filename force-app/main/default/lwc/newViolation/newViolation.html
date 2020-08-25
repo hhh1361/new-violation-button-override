@@ -18,7 +18,7 @@
                 </div>
             </div>
         </template>
-        
+
 
         <div class="slds-m-around_medium slds-box slds-grid slds-wrap">
 
@@ -132,7 +132,8 @@
                                                     role="option">
                                                     <lightning-icon
                                                         class="slds-icon slds-icon--small slds-icon-text-default"
-                                                        icon-name="standard:record" alternative-text="Marketing Partner" size="small">
+                                                        icon-name="standard:record" alternative-text="Marketing Partner"
+                                                        size="small">
                                                     </lightning-icon>
                                                     <span class="slds-truncate">{option.Name}</span>
                                                 </span>
@@ -149,21 +150,12 @@
             <!-- status standart picklist -->
             <div
                 class="slds-col slds-size_1-of-1 slds-medium-size_5-of-12 slds-large-size_5-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-combobox name="Actions Required" label="Actions Required" value={actionsRequiredCurrent} placeholder="Actions Required"
-                    options={actionsRequiredOptions} onchange={changeActionsRequired}>
+                <lightning-combobox name="Actions Required" label="Actions Required" value={actionsRequiredCurrent}
+                    placeholder="Actions Required" options={actionsRequiredOptions} onchange={changeActionsRequired}>
                 </lightning-combobox>
             </div>
-        </div>
-
-
-        <!-- spinner -->
-        <template if:true={isLoading}>
-            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
-        </template>
-
-        <!-- save and cancel button -->
-        <template if:true={isChanged}>
-            <div class="slds-grid slds-wrap">
+            <!-- save and cancel button -->
+            <template if:true={showSaveCancel}>
                 <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
                 <div
                     class="slds-col slds-large-size_1-of-12 slds-small-size_3-of-12 slds-size_5-of-12 slds-align_absolute-center">
@@ -176,8 +168,17 @@
                     </lightning-button>
                 </div>
                 <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
-            </div>
+            </template>
+        </div>
+
+
+        <!-- spinner -->
+        <template if:true={isLoading}>
+            <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
         </template>
+
+
+
         <template if:true={showFooter}>
 
             <!-- Created by readonly information -->

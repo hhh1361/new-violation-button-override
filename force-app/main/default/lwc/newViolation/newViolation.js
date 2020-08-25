@@ -1,6 +1,6 @@
 import { LightningElement, wire, track, api } from 'lwc';
 import { createRecord, getRecord, updateRecord  } from 'lightning/uiRecordApi';
-import { getPicklistValues } from 'lightning/uiObjectInfoApi'
+import { getPicklistValues, getObjectInfo } from 'lightning/uiObjectInfoApi'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import selectById from '@salesforce/apex/UsersSelector.selectById';
 import search from '@salesforce/apex/Lookup.search';
@@ -48,10 +48,13 @@ export default class NewViolation extends LightningElement {
     get showFooter() {
         return this.recordActionType === 'view'
     }
+    get showSaveCancel() {
+        return this.recordActionType !== 'view' || this.isChanged
+    }
 
     
-    @api markCurrent;
-    @api markPrevious;
+    @api markCurrent = '';
+    @api markPrevious = '';
     @track markOptions;
     @api inputBackground = "slds-input slds-combobox__input"
 
@@ -82,6 +85,7 @@ export default class NewViolation extends LightningElement {
 
     @api actionType = this.recordId ? 'Create violation' : 'Save';
     @api isChanged;
+    @api isLoading = false;
 
     @api logData;
     logColumns = [
@@ -99,7 +103,7 @@ export default class NewViolation extends LightningElement {
 
 
     connectedCallback() {
-        // console.log(this.recordId)
+        console.log(this.markCurrent)
     }
     get isChanged() {
         return !this.recordId ||
@@ -111,13 +115,22 @@ export default class NewViolation extends LightningElement {
         this.actionsRequiredCurrent !== this.actionsRequiredPrevious
 
     }
-    @api isLoading = false;
+
+    @wire(getObjectInfo, { objectApiName: VIOLATION_OBJECT })
+    getDefaultRecordType( {data, error} ){
+       if(data){
+         this.recordTypeId = data.defaultRecordTypeId;
+       }else if(error){
+        console.log('Error fetching default record type:');
+        console.log(error)
+        }
+     };
+
 
     @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
-    wiredAccount({ data, error }) {
+    wiredViolation({ data, error }) {
         if (data) {
             console.log(data)
-            this.recordTypeId = data.recordTypeId;
             this.markCurrent = data.fields.Mark__c.value; 
             this.markPrevious = data.fields.Mark__c.value; 
             this.statusCurrent = data.fields.Status__c.value;
@@ -308,6 +321,10 @@ export default class NewViolation extends LightningElement {
 
     }
     cancel() {
+        if(this.recordActionType !== "view") {
+            this.dispatchEvent(new CustomEvent('close'));
+        }
+
         this.statusCurrent = this.statusPrevious;
         this.markCurrent = this.markPrevious;
         this.descriptionCurrent = this.descriptionPrevious;
@@ -319,6 +336,7 @@ export default class NewViolation extends LightningElement {
             this.isValueSelected = true;
         }
     }
+
     sendAlert() {
         sendEmailAlert({recordId: this.recordId})
         .then( () => {

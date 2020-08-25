@@ -1,4 +1,4 @@
 <aura:component 
-    implements="lightning:actionOverride,force:hasRecordId,force:hasSObjectName">
-    <c:newViolation recordId="{!v.recordId}" isCalledFromAura="true"></c:newViolation>
+    implements="lightning:actionOverride,force:hasRecordId,force:hasSObjectName,force:lightningQuickActionWithoutHeader">
+    <c:newViolation recordId="{!v.recordId}" isCalledFromAura="true"  onclose="{!c.closeQA}"></c:newViolation>
 </aura:component>	
