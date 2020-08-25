@@ -13,12 +13,7 @@ import MARK_FIELD from '@salesforce/schema/Violation__c.Mark__c';
 import STATUS_FIELD from '@salesforce/schema/Violation__c.Status__c';
 import PROOF_FIELD from '@salesforce/schema/Violation__c.Proof__c';
 import DESCRIPTION_FIELD from '@salesforce/schema/Violation__c.Description__c';
-import CREATEDBYID_FIELD from '@salesforce/schema/Violation__c.CreatedById';
-import CREATIONDATE_FIELD from '@salesforce/schema/Violation__c.Creation_Date__c';
 import MARKETING_PARTNER_FIELD from '@salesforce/schema/Violation__c.Marketing_Partner__c';
-import ACTIONS_REQUIRED_FIELD from '@salesforce/schema/Violation__c.Actions_required__c';
-
-
 
 const FIELDS = [
     'Violation__c.Mark__c',
@@ -60,7 +55,9 @@ export default class NewViolation extends LightningElement {
     @api markCurrent = '';
     @api markPrevious = '';
     @track markOptions;
-    @api inputBackground = "slds-input slds-combobox__input"
+    @api inputStyle = "slds-input slds-combobox__input"
+    @api dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
+    @api applyBlur;
 
     @track statusOptions;
     @api statusCurrent;
@@ -209,21 +206,31 @@ export default class NewViolation extends LightningElement {
     }
 
 
-    get inputBackground() {
+    get inputStyle() {
         return this.markCurrent ? 
             `slds-input slds-combobox__input ${/\w+/.exec(this.markCurrent.toLowerCase())[0]}` :
             'slds-input slds-combobox__input'
     }
 
     changeMark(e) {
+        console.log('change')
         if(!e.target.classList.contains('slds-combobox__input')) {
             this.markCurrent = e.target.getAttribute('title');
         }
-        e.currentTarget.classList.toggle('slds-is-open');
+        if(!e.currentTarget.classList.contains('slds-is-open')) {
+            this.dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open';
+        }
+        
     }
 
-    changeStatus(event) {
-        this.statusCurrent = event.detail.value;
+    blurMark(e) {
+        setTimeout(() => {
+            this.dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
+        }, 300);
+    }
+
+    changeStatus(e) {
+        this.statusCurrent = e.detail.value;
     }
 
     changeDescription(e) {
@@ -235,76 +242,87 @@ export default class NewViolation extends LightningElement {
     }
 
     upsertViolation() {
-        this.isLoading = true;
-        const fields = {
-            [ID_FIELD.fieldApiName]: this.recordId,
-            [MARK_FIELD.fieldApiName]: this.markCurrent,
-            [STATUS_FIELD.fieldApiName]: this.statusCurrent,
-            [PROOF_FIELD.fieldApiName]: this.proofCurrent,
-            [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
-            [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent
-        };
-
-        if(this.recordId) {
-            //update existing record
-            fields[ID_FIELD.fieldApiName] = this.recordId;
-            const recordInput = { fields };
-            updateRecord(recordInput)
-                .then( () => {
-                    this.isLoading = false;
-                    this.statusPrevious = this.statusCurrent;
-                    this.markPrevious = this.markCurrent;
-                    this.descriptionPrevious = this.descriptionCurrent;
-                    this.proofPrevious = this.proofCurrent;
-                    this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
-                    this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
-                    this.dispatchEvent(new CustomEvent('close'));
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Violation updated',
-                            variant: 'success',
-                        }),
-                    );
-                })
-                .catch(error => {
-                    console.log(error)
-                    this.isLoading = false;
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error updating record',
-                            message: error.body.message,
-                            variant: 'error',
-                        }),
-                    );
-                });
+        if(this.markCurrent && this.statusCurrent && this.marketingPartnerIdCurrent) {
+            this.isLoading = true;
+            const fields = {
+                [ID_FIELD.fieldApiName]: this.recordId,
+                [MARK_FIELD.fieldApiName]: this.markCurrent,
+                [STATUS_FIELD.fieldApiName]: this.statusCurrent,
+                [PROOF_FIELD.fieldApiName]: this.proofCurrent,
+                [DESCRIPTION_FIELD.fieldApiName]: this.descriptionCurrent,
+                [MARKETING_PARTNER_FIELD.fieldApiName]: this.marketingPartnerIdCurrent
+            };
+            if(this.recordId) {
+                //update existing record
+                fields[ID_FIELD.fieldApiName] = this.recordId;
+                const recordInput = { fields };
+                updateRecord(recordInput)
+                    .then( () => {
+                        this.isLoading = false;
+                        this.statusPrevious = this.statusCurrent;
+                        this.markPrevious = this.markCurrent;
+                        this.descriptionPrevious = this.descriptionCurrent;
+                        this.proofPrevious = this.proofCurrent;
+                        this.marketingPartnerIdPrevious = this.marketingPartnerIdCurrent;
+                        this.marketingPartnerNamePrevious = this.marketingPartnerNameCurrent;
+                        this.dispatchEvent(new CustomEvent('close'));
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Success',
+                                message: 'Violation updated',
+                                variant: 'success',
+                            }),
+                        );
+                    })
+                    .catch(error => {
+                        console.log(error)
+                        this.isLoading = false;
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Error updating record',
+                                message: error.body.message,
+                                variant: 'error',
+                            }),
+                        );
+                    });
+            } else {
+                //insert new record
+                const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
+                createRecord(recordInput)
+                    .then( () => {
+                        this.isLoading = false;
+                        this.dispatchEvent(new CustomEvent('close'));
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Success',
+                                message: 'Violation created',
+                                variant: 'success',
+                            }),
+                        );
+                    })
+                    .catch(error => {
+                        console.log(error)
+                        this.isLoading = false;
+                        this.dispatchEvent(
+                            new ShowToastEvent({
+                                title: 'Error creating record',
+                                message: error.body.message,
+                                variant: 'error',
+                            }),
+                        );
+                    });
+            } 
         } else {
-            //insert new record
-            const recordInput = { apiName: VIOLATION_OBJECT.objectApiName, fields };
-            createRecord(recordInput)
-                .then( () => {
-                    this.isLoading = false;
-                    this.dispatchEvent(new CustomEvent('close'));
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Violation created',
-                            variant: 'success',
-                        }),
-                    );
-                })
-                .catch(error => {
-                    console.log(error)
-                    this.isLoading = false;
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error creating record',
-                            message: error.body.message,
-                            variant: 'error',
-                        }),
-                    );
-                });
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: 'Fields Mark, Status and Marketing Partner are required.',
+                    variant: 'error',
+                }),
+            );
         }
+
+        
 
     }
     cancel() {

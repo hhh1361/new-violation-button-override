@@ -21,7 +21,6 @@
 
 
         <div class="slds-m-around_medium slds-box slds-grid slds-wrap">
-
             <!-- status standart picklist -->
             <div
                 class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
@@ -41,13 +40,13 @@
                     </label>
                     <div class="slds-form-element__control ">
                         <div class="slds-combobox_container">
-                            <div class="slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click"
+                            <div class={dropdownStyle}
                                 onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
                                 <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                     role="none">
-                                    <input value={markCurrent} type="text" class={inputBackground} id="combobox-id-1"
+                                    <input value={markCurrent} type="text" class={inputStyle} id="combobox-id-1"
                                         aria-controls="listbox-id-1" autocomplete="off" role="textbox"
-                                        placeholder="Select an Option" readonly />
+                                        placeholder="Select an Option" onblur={blurMark} readonly />
                                 </div>
                                 <div id="listbox-id-1" class="slds-dropdown slds-dropdown_length-5 slds-dropdown_fluid"
                                     role="listbox">
@@ -75,24 +74,8 @@
                 </div>
             </div>
 
-            <!-- description rich text input -->
-            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-input-rich-text value={descriptionCurrent} label="Description" onchange={changeDescription}
-                    label-visible required>
-                </lightning-input-rich-text>
-            </div>
-
-            <!-- proof rich text input -->
-            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-input-rich-text value={proofCurrent} label="Proof" onchange={changeProof} label-visible>
-                </lightning-input-rich-text>
-            </div>
-
-
-
             <!-- marketing partner custom lookup -->
-            <div
-                class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
                 <template if:true={marketingPartnerNameCurrent}>
                     <span>Marketing Partner</span>
                 </template>
@@ -116,7 +99,7 @@
                                             <lightning-input class={inputClass} type="search" id="input"
                                                 value={searchTerm} onclick={handleClick} onblur={onBlur}
                                                 onchange={onSearchChange} label="Marketing Partner" autocomplete="off"
-                                                placeholder={searchPlaceholder}>
+                                                placeholder={searchPlaceholder} required>
                                             </lightning-input>
                                         </div>
                                     </template>
@@ -147,12 +130,25 @@
                 </div>
             </div>
 
-            <!-- Actions Required input readonly -->
-            <template if:true={showActionsRequired}> 
-                <div
-                class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-input type="text" label="Actions Required" value={actionsRequired} read-only></lightning-input>
+            <!-- description rich text input -->
+            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-input-rich-text value={descriptionCurrent} label="Description" onchange={changeDescription}
+                    label-visible required>
+                </lightning-input-rich-text>
             </div>
+
+            <!-- proof rich text input -->
+            <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+                <lightning-input-rich-text value={proofCurrent} label="Proof" onchange={changeProof} label-visible>
+                </lightning-input-rich-text>
+            </div>
+
+            <!-- Actions Required input readonly -->
+            <template if:true={showActionsRequired}>
+                <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
+                    <lightning-input type="text" label="Actions Required" value={actionsRequired} read-only>
+                    </lightning-input>
+                </div>
             </template>
 
             <!-- save and cancel button -->
@@ -172,16 +168,12 @@
             </template>
         </div>
 
-
         <!-- spinner -->
         <template if:true={isLoading}>
             <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
         </template>
 
-
-
         <template if:true={showFooter}>
-
             <!-- Created by readonly information -->
             <div
                 class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
@@ -220,12 +212,6 @@
                 </div>
             </section>
             <div class="slds-backdrop slds-backdrop_open slds-hide modalBackdrops" id="modalBackdrops"></div>
-
         </template>
-
-
-
-
-
     </lightning-card>
 </template>
