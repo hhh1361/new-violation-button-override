@@ -44,7 +44,7 @@
                                 onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
                                 <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                     role="none">
-                                    <input value={markCurrent} type="text" class={inputStyle} id="combobox-id-1"
+                                    <input value={markCurrent} type="text" class={inputStyleMark} id="combobox-id-1"
                                         aria-controls="listbox-id-1" autocomplete="off" role="textbox"
                                         placeholder="Select an Option" onblur={blurMark} readonly />
                                 </div>
@@ -96,10 +96,10 @@
                                     </template>
                                     <template if:false={isValueSelected}>
                                         <div class="slds-p-top_none">
-                                            <lightning-input class={inputClass} type="search" id="input"
+                                            <lightning-input class={inputStyleMarketingPartner} type="search" id="input"
                                                 value={searchTerm} onclick={handleClick} onblur={onBlur}
                                                 onchange={onSearchChange} label="Marketing Partner" autocomplete="off"
-                                                placeholder={searchPlaceholder} required>
+                                                placeholder="Search" required>
                                             </lightning-input>
                                         </div>
                                     </template>
@@ -156,7 +156,7 @@
                 <div class="slds-col slds-large-size_5-of-12 slds-small-size_3-of-12 slds-size_1-of-12"></div>
                 <div
                     class="slds-col slds-large-size_1-of-12 slds-small-size_3-of-12 slds-size_5-of-12 slds-align_absolute-center">
-                    <lightning-button label={actionType} variant="brand" onclick={upsertViolation}>
+                    <lightning-button label={saveButtonValue} variant="brand" onclick={upsertViolation}>
                     </lightning-button>
                 </div>
                 <div

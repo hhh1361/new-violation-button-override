@@ -8,7 +8,6 @@ import sendEmailAlert from '@salesforce/apex/newViolationController.sendEmailAle
 import getLogs from '@salesforce/apex/newViolationController.getLogs';
 import VIOLATION_OBJECT from '@salesforce/schema/Violation__c';
 import ID_FIELD from '@salesforce/schema/Violation__c.Id';
-import NAME_FIELD from '@salesforce/schema/Violation__c.Name';
 import MARK_FIELD from '@salesforce/schema/Violation__c.Mark__c';
 import STATUS_FIELD from '@salesforce/schema/Violation__c.Status__c';
 import PROOF_FIELD from '@salesforce/schema/Violation__c.Proof__c';
@@ -31,9 +30,50 @@ export default class NewViolation extends LightningElement {
     @api recordId;
     @api recordTypeId;
     @api isCalledFromAura;
+    @api isChanged;
+    @api isLoading = false;
+    @api logData;
+
+    // Mark__c field
+    @api markCurrent = '';
+    @api markPrevious = '';
+    @track markOptions;
+    
+    // Status__c field
+    @track statusOptions;
+    @api statusCurrent;
+    @api statusPrevious;
+
+    // Description__c field
+    @api descriptionCurrent = '';
+    @api descriptionPrevious = '';
+
+    // Proof__c field
+    @api proofCurrent = '';
+    @api proofPrevious = '';
+
+    // Marketing_Partner__c field
+    @api marketingPartnerNameCurrent;
+    @api marketingPartnerNamePrevious;
+    @api marketingPartnerIdCurrent;
+    @api marketingPartnerIdPrevious;
+    @track marketingPartnersOptions;
+
+    // Other fields
+    @api nameValue;
+    @api actionsRequired;
+    @api createdByIdValue;
+    @api creationDateValue;
+    @api createdByNameValue;
+
+    // css
+    @api dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
+    @track boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
+    @track inputStyleMarketingPartner = '';
+
     get recordActionType() {
         return this.isCalledFromAura ? this.recordId ? 'edit' : 'create' : 'view';
-    } 
+    }
     get showHeader() {
         return this.recordActionType !== 'create'
     }
@@ -49,52 +89,23 @@ export default class NewViolation extends LightningElement {
     get showActionsRequired() {
         return this.recordActionType === 'view' || !this.isChanged
     }
+    get saveButtonValue() {
+        return !this.recordId ? 'Create' : 'Save';
+    } 
+    get inputStyleMark() {
+        return this.markCurrent ? 
+            `slds-input slds-combobox__input ${/\w+/.exec(this.markCurrent.toLowerCase())[0]}` :
+            'slds-input slds-combobox__input'
+    }
 
-
-    
-    @api markCurrent = '';
-    @api markPrevious = '';
-    @track markOptions;
-    @api inputStyle = "slds-input slds-combobox__input"
-    @api dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
-    @api applyBlur;
-
-    @track statusOptions;
-    @api statusCurrent;
-    @api statusPrevious;
-
-
-
-    @api descriptionCurrent = '<p></p>';
-    @api descriptionPrevious = '<p></p>';
-
-    @api proofCurrent = '<p></p>';
-    @api proofPrevious = '<p></p>';
-
-    @api marketingPartnerNameCurrent;
-    @api marketingPartnerNamePrevious;
-    @api marketingPartnerIdCurrent;
-    @api marketingPartnerIdPrevious;
-    @track marketingPartnersOptions;
-
-    @api nameValue;
-    @api actionsRequired;
-    @api createdByIdValue;
-    @api creationDateValue;
-    @api createdByNameValue;
-
-    @api actionType = this.recordId ? 'Create violation' : 'Save';
-    @api isChanged;
-    @api isLoading = false;
-
-    @api logData;
     logColumns = [
-        { label: 'Time', fieldName: 'time', type: 'date', typeAttributes:{
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit"
+        { label: 'Time', fieldName: 'time', type: 'date', 
+            typeAttributes:{
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
         }},
         { label: 'Perfomed by', fieldName: 'perfomedBy' },
         { label: 'Action', fieldName: 'action' },
@@ -120,11 +131,9 @@ export default class NewViolation extends LightningElement {
         }
      };
 
-
     @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
     wiredViolation({ data, error }) {
         if (data) {
-            console.log(data)
             this.markCurrent = data.fields.Mark__c.value; 
             this.markPrevious = data.fields.Mark__c.value; 
             this.statusCurrent = data.fields.Status__c.value;
@@ -151,11 +160,9 @@ export default class NewViolation extends LightningElement {
                 this.marketingPartnerIdPrevious = data.fields.Marketing_Partner__r.value.id;
                 this.isValueSelected = true;
             }
-
             this.nameValue = data.fields.Name.value;
             this.createdByIdValue = data.fields.CreatedById.value;
             this.creationDateValue = data.fields.Creation_Date__c.displayValue;
-
         } else if (error) {
             console.log('Error fetching record info:');
             console.log(error)
@@ -196,7 +203,7 @@ export default class NewViolation extends LightningElement {
     }
 
     @wire(selectById, { id: '$createdByIdValue' })
-    getName({ data, error }) {
+    getUserName({ data, error }) {
         if (data) {
             this.createdByNameValue = data[0].Name
         } else if (error) {
@@ -205,22 +212,13 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-
-    get inputStyle() {
-        return this.markCurrent ? 
-            `slds-input slds-combobox__input ${/\w+/.exec(this.markCurrent.toLowerCase())[0]}` :
-            'slds-input slds-combobox__input'
-    }
-
     changeMark(e) {
-        console.log('change')
         if(!e.target.classList.contains('slds-combobox__input')) {
             this.markCurrent = e.target.getAttribute('title');
         }
         if(!e.currentTarget.classList.contains('slds-is-open')) {
             this.dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open';
         }
-        
     }
 
     blurMark(e) {
@@ -232,7 +230,6 @@ export default class NewViolation extends LightningElement {
     changeStatus(e) {
         this.statusCurrent = e.detail.value;
     }
-
     changeDescription(e) {
         this.descriptionCurrent = e.detail.value;
     }
@@ -242,6 +239,7 @@ export default class NewViolation extends LightningElement {
     }
 
     upsertViolation() {
+        // check for required fields
         if(this.markCurrent && this.statusCurrent && this.marketingPartnerIdCurrent) {
             this.isLoading = true;
             const fields = {
@@ -256,6 +254,7 @@ export default class NewViolation extends LightningElement {
                 //update existing record
                 fields[ID_FIELD.fieldApiName] = this.recordId;
                 const recordInput = { fields };
+                console.log(this.descriptionCurrent)
                 updateRecord(recordInput)
                     .then( () => {
                         this.isLoading = false;
@@ -321,9 +320,6 @@ export default class NewViolation extends LightningElement {
                 }),
             );
         }
-
-        
-
     }
     cancel() {
         if(this.recordActionType !== "view") {
@@ -393,31 +389,11 @@ export default class NewViolation extends LightningElement {
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    @api objName = "Marketing_Partner__c"
+    // custom lookup section
     @api filter = '';
-    @api searchPlaceholder='Search';
-
-    @track isValueSelected;
-    @track blurTimeout;
-
-    searchTerm;
-    //css
-    @track boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
-    @track inputClass = '';
+    @api isValueSelected;
+    @api blurTimeout;
+    @api searchTerm;
 
     @wire(search, {searchTerm : '$searchTerm', myObject : "Marketing_Partner__c", filter : '$filter'})
     wiredRecords({ error, data }) {
@@ -429,10 +405,9 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-
     handleClick() {
         this.searchTerm = '';
-        this.inputClass = 'slds-has-focus';
+        this.inputStyleMarketingPartner = 'slds-has-focus';
         this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus slds-is-open';
     }
 
