@@ -2,7 +2,8 @@ import { LightningElement, wire, track, api } from 'lwc';
 import { createRecord, getRecord, updateRecord  } from 'lightning/uiRecordApi';
 import { getPicklistValues, getObjectInfo } from 'lightning/uiObjectInfoApi'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import selectById from '@salesforce/apex/UsersSelector.selectById';
+import { refreshApex } from '@salesforce/apex';
+import selectUserById from '@salesforce/apex/UsersSelector.selectById';
 import search from '@salesforce/apex/Lookup.search';
 import sendEmailAlert from '@salesforce/apex/newViolationController.sendEmailAlert';
 import getLogs from '@salesforce/apex/newViolationController.getLogs';
@@ -23,7 +24,8 @@ const FIELDS = [
     'Violation__c.CreatedById',
     'Violation__c.Creation_Date__c',
     'Violation__c.Marketing_Partner__r.Name',
-    'Violation__c.Actions_Required__c'
+    'Violation__c.Actions_Required__c',
+    'Violation__c.UploadedFileId__c'
 ];
 
 export default class NewViolation extends LightningElement {
@@ -65,11 +67,11 @@ export default class NewViolation extends LightningElement {
     @api createdByIdValue;
     @api creationDateValue;
     @api createdByNameValue;
+    @track uploadedContent = [];
 
     // css
     @api dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click';
-    @track boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
-    @track inputStyleMarketingPartner = '';
+    @api boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
 
     get recordActionType() {
         return this.isCalledFromAura ? this.recordId ? 'edit' : 'create' : 'view';
@@ -92,6 +94,17 @@ export default class NewViolation extends LightningElement {
     get saveButtonValue() {
         return !this.recordId ? 'Create' : 'Save';
     } 
+    get isButtonDisabled() {
+        if (this.isChanged ||
+            this.markCurrent === 'Green' ||
+            this.markCurrent === 'Yellow+Complaint' ||
+            this.markCurrent === 'Red+Complaint' ||
+            this.markCurrent === 'Orange+Complaint' ||
+            this.markCurrent === 'Black+Complaint') {
+            return true
+        }
+        return false
+    }
     get inputStyleMark() {
         return this.markCurrent ? 
             `slds-input slds-combobox__input ${/\w+/.exec(this.markCurrent.toLowerCase())[0]}` :
@@ -112,15 +125,6 @@ export default class NewViolation extends LightningElement {
         { label: 'Details', fieldName: 'details' },
     ]
 
-    get isChanged() {
-        return !this.recordId ||
-        this.statusCurrent !== this.statusPrevious ||
-        this.markCurrent !== this.markPrevious ||
-        this.descriptionCurrent !== this.descriptionPrevious ||
-        this.proofCurrent !== this.proofPrevious ||
-        this.marketingPartnerIdCurrent !== this.marketingPartnerIdPrevious 
-    }
-
     @wire(getObjectInfo, { objectApiName: VIOLATION_OBJECT })
     getDefaultRecordType( {data, error} ){
        if(data){
@@ -131,8 +135,13 @@ export default class NewViolation extends LightningElement {
         }
      };
 
+
+    wiredViolation
     @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
-    wiredViolation({ data, error }) {
+    wireViolation(value) {
+        this.wiredViolation = value;
+        const {error, data} = value;
+        console.log(data)
         if (data) {
             this.markCurrent = data.fields.Mark__c.value; 
             this.markPrevious = data.fields.Mark__c.value; 
@@ -163,6 +172,20 @@ export default class NewViolation extends LightningElement {
             this.nameValue = data.fields.Name.value;
             this.createdByIdValue = data.fields.CreatedById.value;
             this.creationDateValue = data.fields.Creation_Date__c.displayValue;
+            if(data.fields.UploadedFileId__c.value) {
+                // parse string
+                this.uploadedContent = data.fields.UploadedFileId__c.value.split('*').filter( i => !!i).map(i => {
+                    const obj = {};
+                    i.replaceAll('ContentDocWrapp:[','').replaceAll(']','').replaceAll(', ',',').split(',').forEach(j => {
+                    obj[j.slice(0, j.indexOf('='))] = j.slice(j.indexOf('=')+1, j.length)
+                    })
+
+                    //convert time from gmt to current
+                    const currentTime =new Date(Date.parse(obj.CreatedDate)-new Date().getTimezoneOffset()*60000);
+                    obj.CreatedDate = currentTime;
+                    return obj
+                })
+            }
         } else if (error) {
             console.log('Error fetching record info:');
             console.log(error)
@@ -202,7 +225,7 @@ export default class NewViolation extends LightningElement {
         }
     }
 
-    @wire(selectById, { id: '$createdByIdValue' })
+    @wire(selectUserById, { id: '$createdByIdValue' })
     getUserName({ data, error }) {
         if (data) {
             this.createdByNameValue = data[0].Name
@@ -212,12 +235,18 @@ export default class NewViolation extends LightningElement {
         }
     }
 
+    // Mark field section
     changeMark(e) {
         if(!e.target.classList.contains('slds-combobox__input')) {
             this.markCurrent = e.target.getAttribute('title');
         }
         if(!e.currentTarget.classList.contains('slds-is-open')) {
             this.dropdownStyle = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-is-open';
+        }
+        if(this.markCurrent !== this.markPrevious) {
+            this.isChanged = true;
+        } else {
+            this.isChanged = false;
         }
     }
 
@@ -227,17 +256,117 @@ export default class NewViolation extends LightningElement {
         }, 300);
     }
 
+    // Status field section
     changeStatus(e) {
         this.statusCurrent = e.detail.value;
+        if(this.statusCurrent !== this.statusPrevious) {
+            this.isChanged = true;
+        } else {
+            this.isChanged = false;
+        }
+    }
+
+    // Description field section
+    descriptionFocus
+    focusDescription(e) {
+        this.descriptionFocus = true;
     }
     changeDescription(e) {
         this.descriptionCurrent = e.detail.value;
+        console.log('triggered change description')
+        if(this.descriptionFocus) {
+            if(this.descriptionCurrent !== this.descriptionPrevious) {
+                this.isChanged = true;
+            } else {
+                this.isChanged = false;
+            }
+        }
+    }
+    focusOutDescription(e) {
+        this.descriptionFocus = false;
     }
 
+    // Proof field section
+    proofFocus
+    focusProof(e) {
+        this.proofFocus = true;
+    }
     changeProof(e) {
         this.proofCurrent = e.detail.value;
+        if(this.proofFocus) {
+            if(this.proofCurrent !== this.proofPrevious) {
+                this.isChanged = true;
+            } else {
+                this.isChanged = false;
+            }
+        }
+    }
+    focusOutProof(e) {
+        this.proofFocus = false;
     }
 
+
+    // Marketing Partner lookup section
+    @api filter = '';
+    @api isValueSelected;
+    @api blurTimeout;
+    @api searchTerm = '';   
+    @wire(search, {searchTerm : '$searchTerm', myObject : "Marketing_Partner__c", filter : '$filter'})
+    wiredRecords({ error, data }) {
+        if (data) {
+            this.marketingPartnersOptions = data;
+        } else if (error) {
+            console.log('Error while fetching marketing partner options');
+            console.log(error)
+        }
+    }
+    connectedCallback() {   
+    }
+    handleClick() {
+        console.log('click')
+        this.inputStyleMarketingPartner = 'slds-has-focus';
+        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus slds-is-open';
+    }   
+    onBlur() {
+        console.log('blur')
+        this.blurTimeout = setTimeout(() =>  {
+            console.log('blured')
+            this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus'
+        }, 300);
+    }   
+    onSelect(event) {
+        console.log('select')
+        this.isValueSelected = true;
+        this.marketingPartnerIdCurrent = event.currentTarget.dataset.id;
+        this.marketingPartnerNameCurrent = event.currentTarget.dataset.name;
+        if(this.blurTimeout) {
+            clearTimeout(this.blurTimeout);
+        }
+        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
+        if(this.marketingPartnerNameCurrent !== this.marketingPartnerNamePrevious) {
+            this.isChanged = true;
+        } else {
+            this.isChanged = false;
+        }
+    }   
+    handleRemovePill() {
+        console.log('remove pill')
+        this.isValueSelected = false;
+        this.marketingPartnerIdCurrent = null;
+        this.marketingPartnerNameCurrent = null;
+        this.searchTerm = '';
+        if(this.marketingPartnerNameCurrent !== this.marketingPartnerNamePrevious) {
+            this.isChanged = true;
+        } else {
+            this.isChanged = false;
+        }
+    }   
+    onSearchChange(event) {
+        this.searchTerm = event.target.value;
+    }
+
+
+    // save/discard record`s changes section
     upsertViolation() {
         // check for required fields
         if(this.markCurrent && this.statusCurrent && this.marketingPartnerIdCurrent) {
@@ -254,10 +383,10 @@ export default class NewViolation extends LightningElement {
                 //update existing record
                 fields[ID_FIELD.fieldApiName] = this.recordId;
                 const recordInput = { fields };
-                console.log(this.descriptionCurrent)
                 updateRecord(recordInput)
                     .then( () => {
                         this.isLoading = false;
+                        this.isChanged = false;
                         this.statusPrevious = this.statusCurrent;
                         this.markPrevious = this.markCurrent;
                         this.descriptionPrevious = this.descriptionCurrent;
@@ -274,7 +403,6 @@ export default class NewViolation extends LightningElement {
                         );
                     })
                     .catch(error => {
-                        console.log(error)
                         this.isLoading = false;
                         this.dispatchEvent(
                             new ShowToastEvent({
@@ -290,6 +418,7 @@ export default class NewViolation extends LightningElement {
                 createRecord(recordInput)
                     .then( () => {
                         this.isLoading = false;
+                        this.isChanged = false;
                         this.dispatchEvent(new CustomEvent('close'));
                         this.dispatchEvent(
                             new ShowToastEvent({
@@ -300,7 +429,6 @@ export default class NewViolation extends LightningElement {
                         );
                     })
                     .catch(error => {
-                        console.log(error)
                         this.isLoading = false;
                         this.dispatchEvent(
                             new ShowToastEvent({
@@ -318,11 +446,11 @@ export default class NewViolation extends LightningElement {
                     message: 'Fields Mark, Status and Marketing Partner are required.',
                     variant: 'error',
                 }),
-            );
+            ); 
         }
     }
     cancel() {
-        if(this.recordActionType !== "view") {
+        if(this.recordActionType !== "view") { 
             this.dispatchEvent(new CustomEvent('close'));
         }
         this.statusCurrent = this.statusPrevious;
@@ -334,8 +462,10 @@ export default class NewViolation extends LightningElement {
         if(this.marketingPartnerIdPrevious) {
             this.isValueSelected = true;
         }
+        this.isChanged = false;
     }
 
+    // send email alert section
     sendAlert() {
         sendEmailAlert({recordId: this.recordId})
         .then( () => {
@@ -353,22 +483,80 @@ export default class NewViolation extends LightningElement {
         });
     }
 
+
+    // Logs modal pop up section
     handlePopup() {
         this.isLoading = true;
+        refreshApex(this.wiredViolation)
+
+        // update content files information
+        if(this.wiredViolation.data.fields.UploadedFileId__c.value) {
+            // parse string
+            this.uploadedContent = this.wiredViolation.data.fields.UploadedFileId__c.value.split('*').filter( i => !!i).map(i => {
+                const obj = {};
+                i.replaceAll('ContentDocWrapp:[','').replaceAll(']','').replaceAll(', ',',').split(',').forEach(j => {
+                obj[j.slice(0, j.indexOf('='))] = j.slice(j.indexOf('=')+1, j.length)
+                })
+
+                //convert time from gmt to current
+                const currentTime =new Date(Date.parse(obj.CreatedDate)-new Date().getTimezoneOffset()*60000);
+                obj.CreatedDate = currentTime;
+                return obj
+            })
+        }
+        
         getLogs({recordId: this.recordId})
         .then(data => {
-            this.logData = data.map(e => {
-                const action = /[A-Za-z]+/.exec(e.Field)[0];
+            const creationInfo = {};
+            const historyArray  = data.map(i => {
+                const action = i.Field.replaceAll('__c', '').replaceAll('_', ' ');
                 const result = {
-                    time: e.CreatedDate,
-                    perfomedBy: e.CreatedBy.Name,
-                    action: action.charAt(0).toUpperCase() + action.slice(1),
+                    time: i.CreatedDate,
+                    perfomedBy: i.CreatedBy.Name,
+                    action: action
                 }
-                if(e.OldValue) {
-                    result.details = `${e.OldValue} => ${e.NewValue}`
+                if (action == 'Status' || action == 'Mark' || action == 'Marketing Partner') {
+                    result.details = `${i.OldValue} => ${i.NewValue}`;
+                    return result
                 }
-                return result
+                if(action == 'Description') {
+                    result.details = 'Description was changed';
+                    return result
+                }
+                if(action == 'Proof') {
+                    result.details = 'Proof was changed';
+                    return result
+                }
+                if (action == 'Name') {
+                    creationInfo.time = i.CreatedDate,
+                    creationInfo.perfomedBy = i.CreatedBy.Name,
+                    creationInfo.action = action,
+                    creationInfo.details = `Created with Name: №${i.NewValue}`
+                }
+            }).filter( i => !!i )
+
+            // add information from Uploaded content array
+            this.uploadedContent.forEach( i => {
+                if(i.Action === 'Create') {
+                    historyArray.push({
+                        time: i.CreatedDate,
+                        perfomedBy: i.CreateBy,
+                        action: 'Content',
+                        details: `Uploaded file: ${i.Title}`
+                    })
+                } else {
+                    historyArray.push({
+                        time: i.CreatedDate,
+                        perfomedBy: i.CreateBy,
+                        action: 'Content',
+                        details: `Deleted file: ${i.Title}`
+                    })
+                }
             })
+            this.logData = historyArray.sort( (a, b) => {
+                return new Date(b.time) - new Date(a.time)
+            })
+            this.logData.push(creationInfo)
         })
         .catch(error => {
             console.log('Error while fetching log data:');
@@ -386,54 +574,5 @@ export default class NewViolation extends LightningElement {
       this.template
         .querySelector("div.modalBackdrops")
         .classList.add("slds-hide");
-    }
-
-
-    // custom lookup section
-    @api filter = '';
-    @api isValueSelected;
-    @api blurTimeout;
-    @api searchTerm;
-
-    @wire(search, {searchTerm : '$searchTerm', myObject : "Marketing_Partner__c", filter : '$filter'})
-    wiredRecords({ error, data }) {
-        if (data) {
-            this.marketingPartnersOptions = data;
-        } else if (error) {
-            console.log('Error while fetching marketing partner options');
-            console.log(error)
-        }
-    }
-
-    handleClick() {
-        this.searchTerm = '';
-        this.inputStyleMarketingPartner = 'slds-has-focus';
-        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus slds-is-open';
-    }
-
-    onBlur() {
-        this.blurTimeout = setTimeout(() =>  {
-            this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus'
-        }, 300);
-    }
-
-    onSelect(event) {
-        this.isValueSelected = true;
-        this.marketingPartnerIdCurrent = event.currentTarget.dataset.id;
-        this.marketingPartnerNameCurrent = event.currentTarget.dataset.name;
-        if(this.blurTimeout) {
-            clearTimeout(this.blurTimeout);
-        }
-        this.boxClass = 'slds-combobox slds-dropdown-trigger slds-dropdown-trigger_click slds-has-focus';
-    }
-
-    handleRemovePill() {
-        this.isValueSelected = false;
-        this.marketingPartnerIdCurrent = null;
-        this.marketingPartnerNameCurrent = null;
-    }
-
-    onSearchChange(event) {
-        this.searchTerm = event.target.value;
     }
 }

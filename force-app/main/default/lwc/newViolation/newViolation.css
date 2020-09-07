@@ -29,11 +29,33 @@
 .record-header {
     font-size: 1.025rem;
     font-weight: 700;
-    line-height: 1.25;
+    line-height: 1.25; 
 }
 
 .record-footer {
     font-size: 0.8rem;
     font-weight: 700;
-    line-height: 1;
+}
+
+.containerPadding  {  
+    line-height: 30px;
+    max-width: 80rem !important;
+    width: 80% !important;
+} 
+.icon {
+    position: absolute;
+    right: 10px;
+    top: 9px;
+}
+
+.marketingPartnerDropdown {
+    /* top: 52px; */
+}
+.marketingPartnerLabel {
+    font-family: 'Salesforce Sans', Arial, sans-serif;
+    line-height: 1.5;
+    color: rgb(62, 62, 60);
+}
+.marketingPartnerLabelRed {
+    color: rgb(194, 57, 52);
 }

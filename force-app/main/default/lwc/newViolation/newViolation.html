@@ -12,7 +12,8 @@
                 <!-- send alert button -->
                 <div class="slds-col slds-size_1-of-4 slds-m-vertical_xx-small slds-p-around_medium">
                     <template if:true={showSendAlert}>
-                        <lightning-button label="Send Alert" variant="destructive-text" onclick={sendAlert}>
+                        <lightning-button label="Send Alert" variant="destructive-text" onclick={sendAlert}
+                            disabled={isButtonDisabled}>
                         </lightning-button>
                     </template>
                 </div>
@@ -21,14 +22,6 @@
 
 
         <div class="slds-m-around_medium slds-box slds-grid slds-wrap">
-            <!-- status standart picklist -->
-            <div
-                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-combobox name="Status" label="Status" value={statusCurrent} placeholder="Status"
-                    options={statusOptions} onchange={changeStatus} required>
-                </lightning-combobox>
-            </div>
-            <div class="slds-col_bump-right"></div>
 
             <!-- mark custom picklist -->
             <div
@@ -40,10 +33,12 @@
                     </label>
                     <div class="slds-form-element__control ">
                         <div class="slds-combobox_container">
-                            <div class={dropdownStyle}
-                                onclick={changeMark} aria-expanded="false" aria-haspopup="listbox" role="combobox">
+                            <div class={dropdownStyle} onclick={changeMark} aria-expanded="false"
+                                aria-haspopup="listbox" role="combobox">
                                 <div class="slds-combobox__form-element slds-input-has-icon slds-input-has-icon_right"
                                     role="none">
+                                    <lightning-icon icon-name="utility:down" class="icon" size="xx-small">
+                                    </lightning-icon>
                                     <input value={markCurrent} type="text" class={inputStyleMark} id="combobox-id-1"
                                         aria-controls="listbox-id-1" autocomplete="off" role="textbox"
                                         placeholder="Select an Option" onblur={blurMark} readonly />
@@ -73,12 +68,28 @@
                     </div>
                 </div>
             </div>
+            <div class="slds-col_bump-right"></div>
+
+            <!-- status standart picklist -->
+            <div
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-vertical_xx-small slds-p-around_medium">
+                <label class="slds-form-element__label" for="status-input">
+                    <abbr class="slds-required" title="required">*</abbr>
+                    Status
+                </label>
+                <lightning-combobox name="Status" variant="label-hidden" value={statusCurrent} placeholder="Status"
+                    id="status-input" options={statusOptions} onchange={changeStatus}>
+                </lightning-combobox>
+            </div>
+
 
             <!-- marketing partner custom lookup -->
             <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <template if:true={marketingPartnerNameCurrent}>
-                    <span>Marketing Partner</span>
-                </template>
+                <label class="slds-form-element__label" for="input">
+                    <abbr class="slds-required" title="required">*</abbr>
+                    Marketing Partner
+                </label>
+                <!-- <label for="input" >your custom label</label> -->
                 <div class="slds-form-element">
                     <div class="slds-form-element__control">
                         <div class="slds-combobox_container">
@@ -96,16 +107,19 @@
                                     </template>
                                     <template if:false={isValueSelected}>
                                         <div class="slds-p-top_none">
-                                            <lightning-input class={inputStyleMarketingPartner} type="search" id="input"
+                                            <input class="slds-input" type="search" id="input" value={searchTerm}
+                                                onclick={handleClick} onblur={onBlur} onchange={onSearchChange}
+                                                autocomplete="off" placeholder="Search" required>
+                                            <!-- <lightning-input class={inputStyleMarketingPartner} type="search" id="input"
                                                 value={searchTerm} onclick={handleClick} onblur={onBlur}
                                                 onchange={onSearchChange} label="Marketing Partner" autocomplete="off"
-                                                placeholder="Search" required>
-                                            </lightning-input>
+                                                placeholder="Search">
+                                            </lightning-input> -->
                                         </div>
                                     </template>
                                 </div>
                                 <div id="listbox-id-2"
-                                    class="slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid"
+                                    class="slds-dropdown slds-dropdown_length-with-icon-7 slds-dropdown_fluid slds-is-absolute marketingPartnerDropdown"
                                     role="listbox">
                                     <ul class="slds-listbox slds-listbox_vertical" role="presentation">
                                         <template for:each={marketingPartnersOptions} for:item="option">
@@ -132,14 +146,16 @@
 
             <!-- description rich text input -->
             <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-input-rich-text value={descriptionCurrent} label="Description" onchange={changeDescription}
-                    label-visible required>
+                <lightning-input-rich-text class="input-description" value={descriptionCurrent} label="Description"
+                    onchange={changeDescription} onfocus={focusDescription} onfocusout={focusOutDescription}
+                    label-visible>
                 </lightning-input-rich-text>
             </div>
 
             <!-- proof rich text input -->
             <div class="slds-col slds-size_1-of-1 slds-m-vertical_xx-small slds-p-around_medium">
-                <lightning-input-rich-text value={proofCurrent} label="Proof" onchange={changeProof} label-visible>
+                <lightning-input-rich-text value={proofCurrent} label="Proof" label-visible onchange={changeProof}
+                    onfocus={focusProof} onfocusout={focusOutProof}>
                 </lightning-input-rich-text>
             </div>
 
@@ -176,8 +192,9 @@
         <template if:true={showFooter}>
             <!-- Created by readonly information -->
             <div
-                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium">
-                <span class="record-footer">Created by {createdByNameValue}, {creationDateValue}</span>
+                class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-large-size_4-of-12 slds-m-horizontal_medium slds-p-bottom_small">
+                <span class="record-footer slds-line-height_reset">Created by {createdByNameValue},
+                    {creationDateValue}</span>
             </div>
 
             <!-- log modal with datatable -->
@@ -187,12 +204,8 @@
             <div class="chart slds-m-around_medium" lwc:dom="manual"></div>
             <section id="modal" role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-modal="true"
                 aria-describedby="modal-content-id-1" class="slds-modal slds-fade-in-open slds-hide">
-                <div class="slds-modal__container">
+                <div class="slds-modal__container containerPadding">
                     <header class="slds-modal__header">
-                        <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
-                            title="Close">
-                            <span class="slds-assistive-text">Close</span>
-                        </button>
                         <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
                             Log
                         </h2>
